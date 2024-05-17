@@ -16,10 +16,13 @@ Welcome to **Type Racer**! This project is a thrilling multiplayer typing game w
 ## Screenshots
 
 <div style="display: flex; overflow-x: auto; padding: 10px; gap: 50px;">
-  <img src="https://github.com/yourusername/typeracer/assets/home-screen.png" alt="Home Screen" height="450" />
-  <img src="https://github.com/yourusername/typeracer/assets/game-screen.png" alt="Game Screen" height="450" />
-  <img src="https://github.com/yourusername/typeracer/assets/leaderboard.png" alt="Leaderboard" height="450" />
-  <img src="https://github.com/yourusername/typeracer/assets/chat.png" alt="Chat Screen" height="450" />
+  <img src="https://github.com/Ketan-Verma21/Type_Racer/assets/106913278/fdad498e-99f8-4dae-9910-c9cc2c8adb9c" alt="Create Room Screen" width="450" />
+<img src="https://github.com/Ketan-Verma21/Type_Racer/assets/106913278/a8201d84-d98e-48d1-992a-b4dbdb1a1d63" alt="End of Game" width="450" />
+<img src="https://github.com/Ketan-Verma21/Type_Racer/assets/106913278/d81da2ce-62cb-4763-b909-2198234fcda1" alt="Game Code Copied" width="450" />
+<img src="https://github.com/Ketan-Verma21/Type_Racer/assets/106913278/7338e13c-1adc-4e81-95c4-5d4d55a2dbe1" alt="Game Start" width="450" />
+<img src="https://github.com/Ketan-Verma21/Type_Racer/assets/106913278/b8636cff-05c7-4782-a555-9669c0870df1" alt="Home" width="450" />
+<img src="https://github.com/Ketan-Verma21/Type_Racer/assets/106913278/36bf42ec-50fb-41c1-b919-d6466af83fd7" alt="Starting of Game" width="450" />
+
 </div>
 
 ## Getting Started
