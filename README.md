@@ -69,7 +69,7 @@ To get a copy of the project up and running on your local machine, follow these 
      ```
 
 ## Folder Structure
-
+```
 typeracer/
 |- backend
 |  |- api
@@ -84,7 +84,7 @@ typeracer/
 |  |- lib
 |  |- test
 |  |- pubspec.yaml
-
+```
 
 - **backend**: Contains the Node.js server and Socket.IO implementation.
 - **frontend**: Contains the Flutter project with all the screens and UI components.
