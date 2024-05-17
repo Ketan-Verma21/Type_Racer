@@ -1,8 +1,5 @@
-Certainly! Here is an example of a README file for your Type Racer application:
-
 ### README for Type Racer
 
-```markdown
 # Type Racer
 
 Welcome to **Type Racer**! This project is a thrilling multiplayer typing game where players compete in real-time to achieve the highest Words Per Minute (WPM). Built with Flutter for the front-end and Node.js with Socket.IO for the backend, Type Racer offers an engaging and competitive typing experience.
@@ -73,7 +70,6 @@ To get a copy of the project up and running on your local machine, follow these 
 
 ## Folder Structure
 
-```
 typeracer/
 |- backend
 |  |- api
@@ -88,7 +84,7 @@ typeracer/
 |  |- lib
 |  |- test
 |  |- pubspec.yaml
-```
+
 
 - **backend**: Contains the Node.js server and Socket.IO implementation.
 - **frontend**: Contains the Flutter project with all the screens and UI components.
@@ -110,4 +106,4 @@ If you have any questions or feedback, feel free to reach out:
 
 - **Email**: try.vrmketan@gmail.com
 - **GitHub**: [Ketan-Verma21](https://github.com/Ketan-Verma21)
-```
+
