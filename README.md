@@ -7,8 +7,6 @@ Welcome to **Type Racer**! This project is a thrilling multiplayer typing game w
 - **Real-time Multiplayer**: Compete against other players in real-time.
 - **Words Per Minute (WPM) Calculation**: Get accurate WPM scores at the end of each game.
 - **Live Leaderboard**: See your ranking in real-time as you type.
-- **Chat Functionality**: Communicate with other players during the game.
-- **User Authentication**: Secure sign up and log in to track your progress and scores.
 - **Responsive Design**: Enjoy a seamless experience across different devices.
 
 ## Screenshots
