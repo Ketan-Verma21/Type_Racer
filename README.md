@@ -1,5 +1,3 @@
-### README for Type Racer
-
 # Type Racer
 
 Welcome to **Type Racer**! This project is a thrilling multiplayer typing game where players compete in real-time to achieve the highest Words Per Minute (WPM). Built with Flutter for the front-end and Node.js with Socket.IO for the backend, Type Racer offers an engaging and competitive typing experience.
