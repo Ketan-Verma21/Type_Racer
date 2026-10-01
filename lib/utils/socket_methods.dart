@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:type_racer/providers/chat_provider.dart';
 import 'package:type_racer/providers/game_state_provider.dart';
 import 'package:type_racer/utils/socket_client.dart';
 import 'package:awesome_snackbar_content/awesome_snackbar_content.dart';
@@ -10,6 +11,7 @@ class SocketMethods {
   final _socketClient = SocketClient.instance.socket!;
   bool is_playing = false;
 
+  // ───────────── emits ─────────────
   CreateGame(String nickname) {
     if (nickname.isNotEmpty) {
       _socketClient.emit('create-game', {'nickname': nickname});
@@ -22,11 +24,47 @@ class SocketMethods {
     }
   }
 
-  // Used on Create/Join screens: updates state AND navigates to the game.
-  //
-  // FIX: provider + navigator are captured NOW (context is alive) and the
-  // callback only uses those, never `context`. Old listeners are removed
-  // first so they can't pile up or fire from disposed screens.
+  sendUserInput(String value, String gameId) {
+    _socketClient.emit('userInput', {'userInput': value, 'gameId': gameId});
+  }
+
+  startTimer(playerId, gameId) {
+    _socketClient.emit("timer", {'playerId': playerId, 'gameId': gameId});
+  }
+
+  /// Host only, lobby only. `settings` = {mode, timeLimit, length, maxPlayers}
+  updateSettings(String gameId, Map<String, dynamic> settings) {
+    _socketClient
+        .emit('update-settings', {'gameId': gameId, 'settings': settings});
+  }
+
+  /// Host only, after the race is over.
+  rematch(String gameId) {
+    _socketClient.emit('rematch', {'gameId': gameId});
+  }
+
+  sendChat(String gameId, String text) {
+    _socketClient.emit('chat-message', {'gameId': gameId, 'text': text});
+  }
+
+  sendReaction(String gameId, String emoji) {
+    _socketClient.emit('reaction', {'gameId': gameId, 'emoji': emoji});
+  }
+
+  requestChatHistory(String gameId) {
+    _socketClient.emit('chat-sync', {'gameId': gameId});
+  }
+
+  emitLeave(String gameId) {
+    _socketClient.emit('leave-game', {'gameId': gameId});
+  }
+
+  // ───────────── listeners ─────────────
+  // Rule: capture provider/navigator/messenger when registering and never
+  // touch `context` inside a callback (the screen may be gone by then).
+  // Always off() before on() so listeners never stack up.
+
+  // Create/Join screens: updates state AND navigates to the game.
   updateGameListener(BuildContext context) {
     final gameProvider = Provider.of<GameStateProvider>(context, listen: false);
     final navigator = Navigator.of(context);
@@ -39,6 +77,7 @@ class SocketMethods {
         isJoin: data['isJoin'],
         isOver: data['isOver'],
         words: data['words'],
+        settings: data['settings'],
       );
       if (data['_id'].isNotEmpty && !is_playing) {
         navigator.pushNamed('/game-screen');
@@ -47,21 +86,8 @@ class SocketMethods {
     });
   }
 
-  sendUserInput(String value, String gameId) {
-    _socketClient.emit('userInput', {'userInput': value, 'gameId': gameId});
-  }
-
-  startTimer(playerId, gameId) {
-    _socketClient.emit("timer", {
-      'playerId': playerId,
-      'gameId': gameId,
-    });
-  }
-
   notCorrectGameListener(BuildContext context) {
-    // messenger belongs to MaterialApp, so it stays valid after this screen
-    // is gone
-    // (findAncestorState... is safe inside initState; ScaffoldMessenger.of is not)
+    // findAncestorState... is safe inside initState; ScaffoldMessenger.of is not
     final messenger = context.findAncestorStateOfType<ScaffoldMessengerState>();
 
     _socketClient.off('notCorrectGame');
@@ -93,7 +119,7 @@ class SocketMethods {
     });
   }
 
-  // Used on the game screen: state update only (no navigation).
+  // Game screen: state update only (no navigation).
   updateGame(BuildContext context) {
     final gameProvider = Provider.of<GameStateProvider>(context, listen: false);
     _socketClient.off('updateGame'); // replaces the Create/Join listener
@@ -104,14 +130,28 @@ class SocketMethods {
         isJoin: data['isJoin'],
         isOver: data['isOver'],
         words: data['words'],
+        settings: data['settings'],
       );
     });
   }
 
-  // Tell the server this player left (server must handle 'leave-game'),
-  // and stop listening to this game's events.
-  emitLeave(String gameId) {
-    _socketClient.emit('leave-game', {'gameId': gameId});
+  chatListener(BuildContext context) {
+    final chat = Provider.of<ChatProvider>(context, listen: false);
+
+    _socketClient.off('chat-message');
+    _socketClient.on('chat-message', (data) {
+      chat.add(ChatMessage.fromJson(data));
+    });
+
+    _socketClient.off('chat-history');
+    _socketClient.on('chat-history', (data) {
+      chat.setHistory(List.from(data).map((d) => ChatMessage.fromJson(d)).toList());
+    });
+
+    _socketClient.off('reaction');
+    _socketClient.on('reaction', (data) {
+      chat.addReaction(ReactionEvent.fromJson(data));
+    });
   }
 
   // When the connection drops and comes back, the socket gets a new id.
@@ -126,6 +166,7 @@ class SocketMethods {
     _socketClient.on('connect', _connectHandler!);
   }
 
+  // Leave for good: tell the server and stop listening to this game's events.
   leaveGame(String gameId) {
     emitLeave(gameId);
     if (_connectHandler != null) {
@@ -135,11 +176,16 @@ class SocketMethods {
     _socketClient.off('timer');
     _socketClient.off('updateGame');
     _socketClient.off('done');
+    _socketClient.off('chat-message');
+    _socketClient.off('chat-history');
+    _socketClient.off('reaction');
     is_playing = false;
   }
 
+  // 'done' is sent to a player when they finish. (We no longer stop listening
+  // to 'timer' here: a rematch needs it again.)
   gameFinishedListener() {
     _socketClient.off('done');
-    _socketClient.on('done', (data) => _socketClient.off('timer'));
+    _socketClient.on('done', (data) {});
   }
 }

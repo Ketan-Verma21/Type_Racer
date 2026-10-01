@@ -54,7 +54,7 @@ class SentenceGame extends StatelessWidget {
                 style: base.copyWith(
                   color: ok ? AppColors.green : AppColors.red,
                   backgroundColor:
-                  ok ? null : AppColors.red.withOpacity(0.25),
+                      ok ? null : AppColors.red.withOpacity(0.25),
                   fontWeight: FontWeight.w800,
                 ),
               ));

@@ -1,19 +1,24 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:type_racer/providers/game_state_provider.dart';
 import 'package:type_racer/theme/app_colors.dart';
 import 'package:type_racer/utils/player_utils.dart';
 import 'package:type_racer/utils/socket_methods.dart';
-import 'package:type_racer/widgets/custom_button.dart';
+import 'package:type_racer/utils/sound_service.dart';
+import 'package:type_racer/utils/typing_stats.dart';
 
-/// Typing box. Turns red + shakes when what you typed doesn't match the
-/// current word. `typed` is shared with SentenceGame for per-letter colours.
+/// Typing box (only shown while racing). Turns red + shakes when what you
+/// typed doesn't match the current word. `typed` is shared with SentenceGame
+/// for per-letter colours; `stats` collects accuracy.
 class GameTextField extends StatefulWidget {
   final ValueNotifier<String> typed;
-  const GameTextField({Key? key, required this.typed}) : super(key: key);
+  final TypingStats stats;
+  const GameTextField({Key? key, required this.typed, required this.stats})
+      : super(key: key);
 
   @override
   State<GameTextField> createState() => _GameTextFieldState();
@@ -27,7 +32,6 @@ class _GameTextFieldState extends State<GameTextField>
     vsync: this,
     duration: const Duration(milliseconds: 300),
   );
-  bool isBtn = true;
   int _lastLen = 0;
 
   @override
@@ -46,6 +50,14 @@ class _GameTextFieldState extends State<GameTextField>
     return !words[me['currentWordIndex']].toString().startsWith(typed);
   }
 
+  void _clear() {
+    setState(() {
+      _wordsController.text = '';
+    });
+    widget.typed.value = '';
+    _lastLen = 0;
+  }
+
   handleTextChange(String value, GameStateProvider game) {
     if (value.isEmpty) {
       widget.typed.value = '';
@@ -53,42 +65,33 @@ class _GameTextFieldState extends State<GameTextField>
       return;
     }
     if (value.endsWith(' ')) {
+      if (value.trim().isEmpty) {
+        _clear(); // just a space: nothing to send
+        return;
+      }
+      widget.stats.record(wrong: false);
       _socketMethods.sendUserInput(value, game.gameState['id']);
-      setState(() {
-        _wordsController.text = '';
-      });
-      widget.typed.value = '';
-      _lastLen = 0;
+      _clear();
       return;
     }
     widget.typed.value = value;
-    // shake only when a new wrong letter is added
-    if (_isWrong(game, value) && value.length > _lastLen) {
-      _shake.forward(from: 0);
+    if (value.length > _lastLen) {
+      final wrong = _isWrong(game, value);
+      widget.stats.record(wrong: wrong);
+      if (wrong) {
+        _shake.forward(from: 0);
+        SoundService.instance.play('error');
+        HapticFeedback.lightImpact();
+      }
     }
     _lastLen = value.length;
-  }
-
-  handleStart(GameStateProvider game, dynamic me) {
-    _socketMethods.startTimer(me['_id'], game.gameState['id']);
-    setState(() {
-      isBtn = false;
-    });
   }
 
   @override
   Widget build(BuildContext context) {
     final gameData = Provider.of<GameStateProvider>(context);
-    final me = findMe(gameData.gameState['players']);
-    if (me == null) return const SizedBox.shrink();
-    final waiting = gameData.gameState['isJoin'] == true;
-
-    if (me['isPartyLeader'] && isBtn) {
-      return Center(
-        heightFactor: 1,
-        child: CustomButton(
-            text: 'Start', onTap: () => handleStart(gameData, me)),
-      );
+    if (findMe(gameData.gameState['players']) == null) {
+      return const SizedBox.shrink();
     }
 
     return Center(
@@ -125,7 +128,7 @@ class _GameTextFieldState extends State<GameTextField>
                     ],
                   ),
                   child: TextFormField(
-                    readOnly: waiting,
+                    autofocus: true,
                     controller: _wordsController,
                     onChanged: (val) => handleTextChange(val, gameData),
                     cursorColor: border,
@@ -134,15 +137,11 @@ class _GameTextFieldState extends State<GameTextField>
                       color: wrong ? AppColors.red : AppColors.textPrimary,
                     ),
                     decoration: InputDecoration(
-                      hintText: waiting
-                          ? 'Waiting for the race to start...'
-                          : 'Type here!',
+                      hintText: 'Type here!',
                       prefixIcon: Icon(
                         wrong
                             ? Icons.error_outline_rounded
-                            : (waiting
-                            ? Icons.hourglass_top_rounded
-                            : Icons.keyboard_rounded),
+                            : Icons.keyboard_rounded,
                         color: border,
                       ),
                       enabledBorder: OutlineInputBorder(

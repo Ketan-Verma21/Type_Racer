@@ -43,6 +43,10 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
     final size = MediaQuery.of(context).size;
     return LoaderOverlay(
       child: Scaffold(
+        extendBodyBehindAppBar: true,
+        appBar: AppBar(
+          leading: const MyBackButton(),
+        ),
         body: GameBackground(
           child: SafeArea(
             child: Center(

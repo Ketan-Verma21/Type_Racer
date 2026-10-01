@@ -4,7 +4,7 @@ class SocketClient {
   IO.Socket? socket;
   static SocketClient? _instance;
   SocketClient._internal() {
-    socket = IO.io('', <String, dynamic>{
+    socket = IO.io('https://typ-racer-server.onrender.com', <String, dynamic>{
       'transports': ['websocket'],
       'autoConnect': false,
     });

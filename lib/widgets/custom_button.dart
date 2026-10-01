@@ -28,7 +28,7 @@ class _CustomButtonState extends State<CustomButton> {
   @override
   Widget build(BuildContext context) {
     final gradient =
-    widget.secondary ? AppColors.secondaryGradient : AppColors.primaryGradient;
+        widget.secondary ? AppColors.secondaryGradient : AppColors.primaryGradient;
     final glow = widget.secondary ? AppColors.magenta : AppColors.cyan;
 
     return GestureDetector(

@@ -39,6 +39,10 @@ class _JoinRoomScreenState extends State<JoinRoomScreen> {
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     return Scaffold(
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        leading: const MyBackButton(),
+      ),
       body: GameBackground(
         child: SafeArea(
           child: Center(
