@@ -6,6 +6,7 @@ import 'package:type_racer/screens/create_room_screen.dart';
 import 'package:type_racer/screens/game_screen.dart';
 import 'package:type_racer/screens/home_screen.dart';
 import 'package:type_racer/screens/join_room_screen.dart';
+import 'package:type_racer/theme/app_theme.dart';
 
 void main() {
   runApp(const MyApp());
@@ -26,9 +27,7 @@ class MyApp extends StatelessWidget {
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
         title: 'Slim Shady',
-        theme: ThemeData(
-          primarySwatch: Colors.blue
-        ),
+        theme: AppTheme.dark,
         initialRoute: '/',
         routes: {
           '/':(context)=> const HomeScreen(),

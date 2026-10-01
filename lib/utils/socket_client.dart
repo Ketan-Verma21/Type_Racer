@@ -4,7 +4,7 @@ class SocketClient {
   IO.Socket? socket;
   static SocketClient? _instance;
   SocketClient._internal() {
-    socket = IO.io('http://192.168.241.128:3000', <String, dynamic>{
+    socket = IO.io('', <String, dynamic>{
       'transports': ['websocket'],
       'autoConnect': false,
     });
@@ -12,7 +12,6 @@ class SocketClient {
     socket!.on('connect_error', (error) {
       print('Socket connection error: $error');
     });
-    // print(socket!.connected);
   }
   static SocketClient get instance {
     _instance ??= SocketClient._internal();
