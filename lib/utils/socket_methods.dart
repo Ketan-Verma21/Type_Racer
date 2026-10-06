@@ -11,16 +11,30 @@ class SocketMethods {
   final _socketClient = SocketClient.instance.socket!;
   bool is_playing = false;
 
+  // Run `action` as soon as the socket is connected (right away if it is
+  // already). Covers the case where the server just woke up and the socket
+  // is still reconnecting, so the first Create/Join isn't lost.
+  void _whenConnected(void Function() action) {
+    if (_socketClient.connected) {
+      action();
+      return;
+    }
+    _socketClient.once('connect', (_) => action());
+    SocketClient.instance.ensureConnected();
+  }
+
   // ───────────── emits ─────────────
   CreateGame(String nickname) {
     if (nickname.isNotEmpty) {
-      _socketClient.emit('create-game', {'nickname': nickname});
+      _whenConnected(
+              () => _socketClient.emit('create-game', {'nickname': nickname}));
     }
   }
 
   JoinGame(String gameId, String nickname) {
     if (nickname.isNotEmpty && gameId.isNotEmpty) {
-      _socketClient.emit('join-game', {'nickname': nickname, 'gameId': gameId});
+      _whenConnected(() => _socketClient
+          .emit('join-game', {'nickname': nickname, 'gameId': gameId}));
     }
   }
 

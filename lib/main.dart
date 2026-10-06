@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:type_racer/providers/chat_provider.dart';
 import 'package:type_racer/providers/client_state_provider.dart';
 import 'package:type_racer/providers/game_state_provider.dart';
+import 'package:type_racer/providers/server_status_provider.dart';
 import 'package:type_racer/screens/create_room_screen.dart';
 import 'package:type_racer/screens/game_screen.dart';
 import 'package:type_racer/screens/home_screen.dart';
@@ -23,6 +24,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => GameStateProvider()),
         ChangeNotifierProvider(create: (_) => ClientStateProvider()),
         ChangeNotifierProvider(create: (_) => ChatProvider()),
+        ChangeNotifierProvider(create: (_)=> ServerStatusProvider())
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
