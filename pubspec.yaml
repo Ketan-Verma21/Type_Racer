@@ -47,7 +47,11 @@ dependencies:
   confetti: ^0.8.0
   audioplayers: ^6.7.1
   http: ^1.2.0
+  sentry_flutter: ^9.9.1
+  feedback_sentry: ^3.2.0
+  shorebird_code_push: ^2.0.6
 dev_dependencies:
+  sentry_dart_plugin: ^3.2.0
   flutter_test:
     sdk: flutter
 

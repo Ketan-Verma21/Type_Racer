@@ -9,10 +9,20 @@ import 'package:type_racer/screens/game_screen.dart';
 import 'package:type_racer/screens/home_screen.dart';
 import 'package:type_racer/screens/join_room_screen.dart';
 import 'package:type_racer/theme/app_theme.dart';
+import 'package:sentry_flutter/sentry_flutter.dart';
 
-void main() {
-  runApp(const MyApp());
-}
+
+Future<void> main() async {
+  await SentryFlutter.init(
+    (options) {
+      options.dsn = 'https://4d04f8c7a05d03e52ef3a2f4c5abc753@o4507341116145664.ingest.us.sentry.io/4512209704124416';
+      options.sendDefaultPii = true;
+      options.tracesSampleRate = 1.0;
+      options.profilesSampleRate = 1.0;
+    },
+    appRunner: () => runApp(SentryWidget(child: const MyApp())),
+  );
+ }
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
