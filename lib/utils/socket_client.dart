@@ -2,7 +2,7 @@ import 'package:socket_io_client/socket_io_client.dart' as IO;
 
 /// The URL of your hosted server, e.g. 'https://type-racer-xxxx.onrender.com'
 /// (no trailing slash). Copy it from your old socket_client.dart.
-const String kServerUrl = 'https://typ-racer-server.onrender.com';
+const String kServerUrl = 'http://localhost:3000';
 
 /// One shared socket connection for the whole app.
 class SocketClient {

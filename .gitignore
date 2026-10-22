@@ -45,3 +45,6 @@ app.*.map.json
 
 sentry.properties
 sentry-wizard.exe
+
+# The server lives in its own repo (TypeRacerServer)
+server/

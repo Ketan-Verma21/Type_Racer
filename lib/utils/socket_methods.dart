@@ -79,7 +79,8 @@ class SocketMethods {
   // Always off() before on() so listeners never stack up.
 
   // Create/Join screens: updates state AND navigates to the game.
-  updateGameListener(BuildContext context) {
+  // `onEnterGame` runs right before navigating (e.g. to stop a spinner).
+  updateGameListener(BuildContext context, {VoidCallback? onEnterGame}) {
     final gameProvider = Provider.of<GameStateProvider>(context, listen: false);
     final navigator = Navigator.of(context);
 
@@ -94,20 +95,22 @@ class SocketMethods {
         settings: data['settings'],
       );
       if (data['_id'].isNotEmpty && !is_playing) {
+        onEnterGame?.call();
         navigator.pushNamed('/game-screen');
         is_playing = true;
       }
     });
   }
 
-  notCorrectGameListener(BuildContext context) {
+  // `onError` runs before the snackbar is shown (e.g. to stop a spinner).
+  notCorrectGameListener(BuildContext context, {VoidCallback? onError}) {
     // findAncestorState... is safe inside initState; ScaffoldMessenger.of is not
     final messenger = context.findAncestorStateOfType<ScaffoldMessengerState>();
 
     _socketClient.off('notCorrectGame');
-    _socketClient.on(
-      'notCorrectGame',
-          (data) => messenger?.showSnackBar(
+    _socketClient.on('notCorrectGame', (data) {
+      onError?.call();
+      messenger?.showSnackBar(
         SnackBar(
           elevation: 0,
           behavior: SnackBarBehavior.floating,
@@ -120,8 +123,8 @@ class SocketMethods {
                 : ContentType.warning,
           ),
         ),
-      ),
-    );
+      );
+    });
   }
 
   updateTimer(BuildContext context) {

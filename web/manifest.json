@@ -1,11 +1,11 @@
 {
-    "name": "type_racer",
-    "short_name": "type_racer",
+    "name": "Type Racer",
+    "short_name": "Type Racer",
     "start_url": ".",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "background_color": "#0B0F1E",
+    "theme_color": "#0B0F1E",
+    "description": "Real-time multiplayer typing race.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

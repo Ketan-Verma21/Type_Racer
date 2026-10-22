@@ -16,7 +16,7 @@ Future<void> main() async {
   await SentryFlutter.init(
     (options) {
       options.dsn = 'https://4d04f8c7a05d03e52ef3a2f4c5abc753@o4507341116145664.ingest.us.sentry.io/4512209704124416';
-      options.sendDefaultPii = true;
+      options.sendDefaultPii = false; // don't send player IP/device PII
       options.tracesSampleRate = 1.0;
       options.profilesSampleRate = 1.0;
     },
@@ -38,7 +38,7 @@ class MyApp extends StatelessWidget {
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
-        title: 'Slim Shady',
+        title: 'Type Racer',
         theme: AppTheme.dark,
         initialRoute: '/',
         routes: {
