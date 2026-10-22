@@ -3,9 +3,9 @@
 > Progress log for AI assistants. Read after `Rules.md`, before coding. Update at the end of every session.
 
 ## Current status
-- Phase: 2 — Validation, logging, quotes, room codes (🟨 code complete; branches `phase-2-validation` (server) and `phase-2-room-codes` (app); waiting for owner checks). Phases 0–1 ✅ merged.
-- Machine: Windows (Node 20.19.5 via nvm-windows 1.2.2, **npm 11** (upgraded from 10.8.2), Flutter at `D:\Flutter\sdk`, no Docker)
-- Last session: 2026-10-22 — Phase 0 code written; waiting for the owner to install Vitest and run both test suites on Windows
+- Phase: 3 — Ubuntu setup + Docker Compose (✅ done; server branch `phase-3-docker`, app branch `phase-3-docs`). Phases 0–2 ✅ merged.
+- Machine: **Ubuntu 22.04** (zsh; Node 20.20.2 via nvm 0.40.3, npm 11.21.1; Docker 29.1.3 from Ubuntu's `docker.io` + `docker-compose-v2`; Flutter 3.47.7 (snap, Dart 3.13.5); Chrome 156). Repos at `~/Code/Project/type_racer` (+ `server/`).
+- Last session: 2026-10-22 — Docker image builds, Compose stack healthy, all tests green on Linux.
 
 ## Done
 - 2026-10-22 v1 analysed → `PROJECT_OVERVIEW.md`.
@@ -28,6 +28,10 @@
 - 2026-10-22 Phase 1 merged to master; Render now builds `npm ci && npm run build`, starts `npm start`; MONGO_URL removed.
 - 2026-10-22 **Phase 2 code complete**: zod env + payload schemas, `withHandler` error replies (`error-message`, `notCorrectGame` for create/join/rejoin), `joined` event, PinoLogger, 108 bundled quotes + fallback chain + quote length via `getWords(minWords)`, 6-char room codes, `/health/live|ready`. 162 server tests + e2e smoke (no API key → bundled quotes; long = 45 words; lowercase code joins; FORBIDDEN / BAD_REQUEST replies) passed. App: `--dart-define=SERVER_URL`, room-code input + validation, Join spinner/timeout, big room code in lobby, `error-message` snackbar; new `test/unit/room_code_test.dart` (not run yet).
 
+- 2026-10-22 **Phase 3 (Ubuntu):** toolchain installed and checked. On Linux: `npm test` 162/162, `flutter test` 23/23.
+- 2026-10-22 `server/Dockerfile` (multi-stage `node:20-slim`: build = `npm ci` + `npm run build`; runtime = `npm ci --omit=dev`, `dist/` + `data/`, `USER node`), `.dockerignore` (no node_modules/tests/.git/.env), `docker-compose.yml` (`app` on 3000 with `env_file: .env`, `INSTANCE_ID=app1`, healthcheck via `node -e fetch(/health/ready)`; `redis:7` `--appendonly yes`, volume `redis-data`, port `127.0.0.1:6379`; app waits for healthy Redis). `docker compose up --build -d` → both containers up, `/health` + `/health/ready` OK, JSON logs with `instanceId`.
+- 2026-10-22 README "Getting Started" rewritten: Mongo removed, clone layout, "Run with Docker", Node dev option, `--dart-define=SERVER_URL`.
+
 ## Decisions
 - 2026-10-22 Env var names stay `API_URL` / `API_KEY` (match existing .env and Render), not QUOTES_API_*.
 - 2026-10-22 Pretty logs only when stdout is a terminal, so Render gets JSON without needing NODE_ENV=production (which would make `npm ci` skip the dev dependencies the build needs).
@@ -40,6 +44,9 @@
 - 2026-10-22 Hosting: build multi-instance locally; production = Render free web service + Render Key Value; Kafka online optional (Aiven free).
 - 2026-10-22 The AI's sandboxes cannot reach the npm registry → the owner runs `npm install` / `npm test` / `flutter test` on Windows and pastes results.
 
+- 2026-10-22 Docker comes from Ubuntu's packages (`docker.io`, `docker-compose-v2`), not Docker's apt repo — don't mix the two.
+- 2026-10-22 No `curl` in the slim image → healthchecks use `node -e "fetch(...)"`. Containers must not get a TTY (pino would load `pino-pretty`, a dev dependency).
+
 ## Decisions (Phase 1 design)
 - `Notifier` port (gameChanged/timer/raceOver/playerFinished/chat*/reaction) instead of a generic Broadcaster — services never see Socket.IO event names.
 - `RoomMembership` port: services add a socket to the game room *before* broadcasting (creator must receive the first `updateGame`). In Phase 5 this maps to `io.in(socketId).socketsJoin(room)`, which works across instances.
@@ -51,11 +58,14 @@
 - Create with an empty nickname now replies `notCorrectGame "Please enter your name"` (v1 silently ignored it).
 
 ## Next steps
-1. Owner: server `npm run typecheck`, `npm run lint`, `npm test`; app `flutter analyze`, `flutter test`; play a game with `flutter run -d chrome --dart-define=SERVER_URL=http://localhost:3000`.
-2. Commit both phase-2 branches, push, merge (the old app still works with 6-char codes — it never checked the format — but the new app is nicer).
-3. Push to GitHub, switch to Ubuntu, start Phase 3 (Ubuntu setup + Docker Compose).
+1. ~~Full race against the Docker backend~~ — done 2026-10-22.
+2. Commit + push `phase-3-docker` (server) and `phase-3-docs` (app); merge.
+3. Phase 4 — Redis as the datastore (`ioredis`, `RedisGameRepository`, contract suite against `ioredis-mock` + the Compose Redis).
 
 ## Known issues / TODO
+- 2026-10-22 Node 20 is past end-of-life (April 2026). Kept per plan; consider Node 22 (image + nvm + `engines`) as a small separate change.
+- 2026-10-22 `docker compose` warns "buildx isn't installed" → `sudo apt install docker-buildx` (harmless; classic builder used).
+- 2026-10-22 How the AI works now: the session is linked to the Ubuntu machine; it reads/writes files in `~/Code/Project` but cannot run commands — the owner runs npm/flutter/docker and pastes output.
 - 2026-10-22 Lesson: merging the root repo's "stop tracking server/" commit into a branch where `server/` was still tracked made git DELETE the server files from disk. Recovered with `git restore .` inside `server/` (all work was committed in TypeRacerServer). Root now ignores `server/`, so it can't recur.
 - npm 10.8.2 crashed with `Cannot read properties of null (reading 'edgesOut')` on installs → fixed by `npm install -g npm@11`. `@vitest/*` packages must be pinned to the exact installed vitest version (`npm i -D @vitest/coverage-v8@<vitest version>`), otherwise npm 11 fails with `reading 'children'`.
 - 11 npm audit warnings, mostly socket.io 2.x — fixed by the Phase 5 upgrade. Do NOT run `npm audit fix --force`.
@@ -65,7 +75,8 @@
 
 ## Useful commands
 - Server: `cd server && npm run dev` · `npm test` · `npm run test:coverage`
-- Client: `flutter test` · `flutter run -d chrome`
+- Docker: `cd server && docker compose up --build -d` · `docker compose ps` · `docker compose logs -f app` · `docker compose down`
+- Client: `flutter test` · `flutter run -d chrome --dart-define=SERVER_URL=http://localhost:3000`
 
 ## Measurements
 - (Phase 4+)
