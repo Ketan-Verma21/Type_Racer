@@ -7,9 +7,9 @@
 |---|---|---|---|---|
 | 0 | Safety net & quick fixes | Windows | Unit testing basics | ✅ |
 | 1 | Server rewrite: TypeScript + SOLID (in-memory store, Mongo removed) | Windows | TypeScript, SOLID, DI, test doubles | ✅ |
-| 2 | Error handling, validation, quotes, room codes | Windows | Fail-safe design, zod, Strategy/Composite | 🟨 |
-| — | **Push both repos to GitHub → switch to Ubuntu** | | | ⬜ |
-| 3 | Ubuntu setup + Docker Compose | Ubuntu | Containers | ⬜ |
+| 2 | Error handling, validation, quotes, room codes | Windows | Fail-safe design, zod, Strategy/Composite | ✅ |
+| — | **Push both repos to GitHub → switch to Ubuntu** | | | ✅ |
+| 3 | Ubuntu setup + Docker Compose | Ubuntu | Containers | ✅ |
 | 4 | Redis as the datastore (+ leaderboard, history) | Ubuntu | Redis data modelling, atomicity, TTL | ⬜ |
 | 5 | Multi-instance: Socket.IO v4, Redis adapter, distributed clock | Ubuntu | Horizontal scaling, pub/sub, distributed claims | ⬜ |
 | 6 | Nginx load balancer & load testing | Ubuntu | Reverse proxy, WebSockets, measuring scale | ⬜ |
@@ -77,22 +77,22 @@
 **Done when:** an empty `API_KEY` still creates rooms; garbage payloads get `error-message`; rooms use 6-char codes end to end.
 
 ### ➜ Handover to Ubuntu
-- [ ] Commit + push root repo (`Type_Racer`) and `server/` repo (`TypeRacerServer`) on `phase-2` branches; merge.
+- [x] Commit + push root repo (`Type_Racer`) and `server/` repo (`TypeRacerServer`) on `phase-2` branches; merge.
 - [ ] Note in `Memory.md`: last commit hashes, anything unfinished.
-- [ ] Copy `server/.env` to Ubuntu manually (it's git-ignored).
+- [x] Copy `server/.env` to Ubuntu manually (it's git-ignored). (Ubuntu currently uses `.env.example` → bundled quotes.)
 
 ---
 
 ## Phase 3 — Ubuntu setup + Docker Compose (Ubuntu)
 **Goal:** a reproducible dev machine; one command runs the backend.
 
-- [ ] Install: git, nvm → Node 20, Docker Engine + Compose plugin (add user to `docker` group), Flutter SDK + Chrome (`flutter doctor`), VS Code/Android Studio as preferred.
-- [ ] Clone both repos; `npm ci`; `npm test`; `flutter pub get`; `flutter test` — all green on Linux.
-- [ ] `server/Dockerfile` (multi-stage: build with `tsc`, run on `node:20-slim`, non-root user).
-- [ ] `server/docker-compose.yml`: `app` (1 instance) + `redis:7` (`--appendonly yes`, volume) — Redis not used by code yet, just running.
-- [ ] `.dockerignore`.
+- [x] Install: git, nvm → Node 20, Docker Engine + Compose plugin (add user to `docker` group), Flutter SDK + Chrome (`flutter doctor`), VS Code/Android Studio as preferred.
+- [x] Clone both repos; `npm ci`; `npm test`; `flutter pub get`; `flutter test` — all green on Linux (162 + 23).
+- [x] `server/Dockerfile` (multi-stage: build with `tsc`, run on `node:20-slim`, non-root user).
+- [x] `server/docker-compose.yml`: `app` (1 instance) + `redis:7` (`--appendonly yes`, volume) — Redis not used by code yet, just running.
+- [x] `.dockerignore`.
 - [x] Client: `SERVER_URL` via `--dart-define` (FR-14) — done in Phase 2.
-- [ ] README: "Run with Docker".
+- [x] README: "Run with Docker".
 
 **Done when:** `docker compose up` + `flutter run -d chrome --dart-define=SERVER_URL=http://localhost:3000` plays a full race.
 

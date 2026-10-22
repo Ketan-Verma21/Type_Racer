@@ -109,42 +109,50 @@ type_racer/                      # Flutter project
 ## 🚀 Getting Started
 
 ### Prerequisites
-- [Flutter SDK](https://docs.flutter.dev/get-started/install)
-- [Node.js](https://nodejs.org/) (v18+) and npm
-- A [MongoDB](https://www.mongodb.com/atlas) connection string (a free Atlas cluster works)
-- A free [API Ninjas](https://api-ninjas.com/) key
+- [Flutter SDK](https://docs.flutter.dev/get-started/install) and Chrome (for the web build)
+- [Docker Engine](https://docs.docker.com/engine/install/) with the Compose plugin — **or** Node.js 20 and npm
+- Optional: a free [API Ninjas](https://api-ninjas.com/) key. Without one the server uses its 108 bundled quotes.
 
 ### 1. Clone
+The server is its own repo, cloned inside the app folder (the app repo ignores `server/`):
 ```bash
-git clone https://github.com/Ketan-Verma21/Type_Racer.git
-cd Type_Racer
+git clone https://github.com/Ketan-Verma21/Type_Racer.git type_racer
+cd type_racer
+git clone https://github.com/Ketan-Verma21/TypeRacerServer.git server
+cp server/.env.example server/.env   # fill in API_KEY if you have one
 ```
 
 ### 2. Start the server
+
+#### Run with Docker (recommended)
+One command starts the game server and Redis:
 ```bash
 cd server
-npm install
+docker compose up --build -d   # build the image and start in the background
+docker compose ps              # both services should say (healthy)
+docker compose logs -f app     # follow the server logs (JSON)
+docker compose down            # stop; Redis data stays in the redis-data volume
 ```
-Create a `.env` file in `server/`:
-```env
-PORT=3000
-MONGO_URL=your_mongodb_connection_string
-API_URL=https://api.api-ninjas.com/v2/quotes
-API_KEY=your_api_ninjas_key
-```
-Run it:
+The server listens on `http://localhost:3000` (`/health`, `/health/live`, `/health/ready`).
+Redis is only reachable from this machine (`127.0.0.1:6379`). Rebuild with `--build` after changing server code.
+
+#### Run with Node (for development)
 ```bash
-node index.js
+cd server
+npm ci
+npm run dev        # auto-restarts on changes
+npm test           # unit tests (Vitest)
 ```
 
 ### 3. Run the app
-Make sure the socket client points to your server's address (use your computer's LAN IP, not `localhost`, when testing on a phone), then:
+Point the app at your server with `SERVER_URL` (default: the hosted server):
 ```bash
 flutter pub get
-flutter run
+flutter run -d chrome --dart-define=SERVER_URL=http://localhost:3000
 ```
+On a phone, use your computer's LAN IP instead of `localhost`.
 
-Open the app on two devices (or two browser tabs), create a room on one, and join with the code on the other.
+Open the app in two tabs (or devices), create a room in one, and join with the 6-character code in the other.
 
 ## 🔌 Socket Events
 
