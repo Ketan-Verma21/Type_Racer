@@ -106,6 +106,7 @@ Depth comes from **glow**, not drop shadows: `BoxShadow(color: accent.withOpacit
 | **Chat panel** | Cyan-bordered card, 130 px message list (auto-scroll), own name cyan / others magenta, 140-char input, send icon, reaction row. |
 | **Reactions** | 6 emoji buttons (😂 🔥 👏 😮 💀 ❤️) in round `surfaceHigh` buttons; reactions float up 280 px over 2.3 s with the sender's name, fading out. |
 | **Banners** | Wrong word / OUT: red @ 0.92 pill near top, scale-in + shake, auto-hide after 1.9 s. Server status: yellow (waking + spinner + seconds), green dot (online), red (failed + Retry). |
+| **Room code tile** | Lobby, top: "ROOM CODE" label (Orbitron 11, muted), the code in Orbitron 32 cyan with letter-spacing 8, "Tap to copy" hint; tap copies it. Join field upper-cases and allows only 6 letters/digits. |
 | **Status pill** | Top bar centre, UPPERCASE yellow Orbitron 12 on `surfaceHigh`, yellow border ("GAME STARTING", "TIME REMAINING"). |
 | **Snackbars** | `awesome_snackbar_content`, floating, transparent background: success / warning / failure. |
 | **Background** | Navy gradient + cyan grid (48 px, 6 % opacity) scrolling downward every 3 s + two blurred glows (cyan top-left, magenta bottom-right). |

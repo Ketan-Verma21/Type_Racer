@@ -127,6 +127,33 @@ class SocketMethods {
     });
   }
 
+  /// `error-message` {code, message}: shown in a snackbar on the game screen
+  /// (e.g. a guest tapping a host-only setting). Create/join use notCorrectGame.
+  errorMessageListener(BuildContext context) {
+    final messenger = context.findAncestorStateOfType<ScaffoldMessengerState>();
+    _socketClient.off('error-message');
+    _socketClient.on('error-message', (data) {
+      final message = data is Map ? data['message']?.toString() : null;
+      if (message == null || message.isEmpty) return;
+      messenger?.showSnackBar(
+        SnackBar(
+          elevation: 0,
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Colors.transparent,
+          content: AwesomeSnackbarContent(
+            title: 'Hmm',
+            message: message,
+            contentType: ContentType.warning,
+          ),
+        ),
+      );
+    });
+  }
+
+  stopErrorMessages() {
+    _socketClient.off('error-message');
+  }
+
   updateTimer(BuildContext context) {
     final clientStateProvider =
     Provider.of<ClientStateProvider>(context, listen: false);
@@ -196,6 +223,7 @@ class SocketMethods {
     _socketClient.off('chat-message');
     _socketClient.off('chat-history');
     _socketClient.off('reaction');
+    _socketClient.off('error-message');
     is_playing = false;
   }
 

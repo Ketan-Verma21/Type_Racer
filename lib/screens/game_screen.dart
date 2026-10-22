@@ -65,6 +65,7 @@ class _GameScreenState extends State<GameScreen> {
     _socketMethods.updateGame(context);
     _socketMethods.gameFinishedListener();
     _socketMethods.chatListener(context);
+    _socketMethods.errorMessageListener(context);
 
     _gameId = _gameProvider.gameState['id'].toString();
     final me = findMe(_gameProvider.gameState['players'] as List);
@@ -87,6 +88,7 @@ class _GameScreenState extends State<GameScreen> {
     // system back button etc.: make sure the server knows we left
     // (server ignores it if we already left via "Back to Home")
     _socketMethods.emitLeave(_gameId);
+    _socketMethods.stopErrorMessages();
     _bannerTimer?.cancel();
     _banner.dispose();
     _confetti.dispose();
@@ -357,7 +359,7 @@ class _GameScreenState extends State<GameScreen> {
               child: ListView(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 children: [
-                  // room code
+                  // room code: big and readable, so it can be read out loud
                   InkWell(
                     borderRadius: BorderRadius.circular(14),
                     onTap: () => _copyCode(gameId),
@@ -370,15 +372,29 @@ class _GameScreenState extends State<GameScreen> {
                         border:
                         Border.all(color: AppColors.cyan.withOpacity(0.35)),
                       ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                      child: Column(
                         children: [
-                          const Icon(Icons.copy_rounded,
-                              size: 18, color: AppColors.cyan),
-                          const SizedBox(width: 10),
-                          Text('Tap to copy game code',
-                              style: AppTheme.body(
-                                  size: 16, color: AppColors.textMuted)),
+                          Text('ROOM CODE',
+                              style: AppTheme.display(
+                                  size: 11,
+                                  color: AppColors.textMuted,
+                                  spacing: 2)),
+                          const SizedBox(height: 4),
+                          Text(gameId,
+                              style: AppTheme.display(
+                                  size: 32, color: AppColors.cyan, spacing: 8)),
+                          const SizedBox(height: 4),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.copy_rounded,
+                                  size: 16, color: AppColors.textMuted),
+                              const SizedBox(width: 6),
+                              Text('Tap to copy',
+                                  style: AppTheme.body(
+                                      size: 14, color: AppColors.textMuted)),
+                            ],
+                          ),
                         ],
                       ),
                     ),

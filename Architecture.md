@@ -98,7 +98,7 @@ domain (pure TS: modes, rules, settings, wpm, room codes, errors)
 
 interfaces (ports):  GameRepository · ChatRepository · SessionStore · QuoteProvider
                      EventPublisher · LeaderboardRepository · MatchHistoryRepository
-                     Clock · IdGenerator · Broadcaster · RateLimiter
+                     Clock · Scheduler · IdGenerator · Notifier · RoomMembership · RateLimiter · Logger
         ▲ implemented by
 infra (adapters):    InMemory* (tests + Phases 1–3) · Redis* (Phase 4+) · Kafka* (Phase 7)
                      ApiNinjas/Local quotes · SystemClock · SocketIoBroadcaster
@@ -135,7 +135,7 @@ server/
 │   ├── ports/                       # interfaces only (one file each)
 │   │   ├── GameRepository.ts  ChatRepository.ts  SessionStore.ts  QuoteProvider.ts
 │   │   ├── EventPublisher.ts  LeaderboardRepository.ts  MatchHistoryRepository.ts
-│   │   └── Clock.ts  IdGenerator.ts  Broadcaster.ts  RateLimiter.ts
+│   │   └── Clock.ts  Scheduler.ts  IdGenerator.ts  Notifier.ts  RoomMembership.ts  RateLimiter.ts  Logger.ts
 │   ├── services/
 │   │   ├── GameService.ts           # create, join, settings, submitWord, rematch, leave
 │   │   ├── RaceClock.ts             # countdown/race clock driven by the sweeper
@@ -152,15 +152,16 @@ server/
 │   │   ├── events/InProcessEventPublisher.ts   # calls StatsService directly
 │   │   ├── quotes/                  # ApiNinjasQuoteProvider, LocalQuoteProvider, FallbackQuoteProvider
 │   │   ├── SystemClock.ts  RandomIdGenerator.ts
-│   │   └── socket/SocketIoBroadcaster.ts
+│   │   ├── IntervalScheduler.ts
+│   │   └── socket/SocketIoNotifier.ts   # implements Notifier + RoomMembership
 │   ├── transport/
 │   │   ├── http/health.ts
 │   │   └── socket/
 │   │       ├── index.ts             # connection setup, registers handlers
 │   │       ├── events.ts            # event-name constants
 │   │       ├── schemas.ts           # zod schema per event (+ inferred payload types)
-│   │       ├── withHandler.ts       # validate → call → catch → emit error
-│   │       ├── gameHandlers.ts  chatHandlers.ts  connectionHandlers.ts
+│   │       ├── types.ts             # minimal ServerSocket/IoServer interfaces (Socket.IO-version independent)
+│   │       ├── registerSocketHandlers.ts   # thin handlers (Phase 2 adds zod + withHandler)
 │   │       └── gameDto.ts           # domain Game → v1-compatible `updateGame` payload
 │   └── infra/
 │       ├── redis.ts                 # ioredis clients (cmd, pub, sub)
@@ -183,10 +184,10 @@ server/
 
 | Principle | Where it shows up |
 |---|---|
-| **S** | Handlers only validate + delegate; `GameService` = use cases; `rules.ts` = pure rules; `RaceClock`/`Sweeper` = time; `SocketIoBroadcaster` = emitting; `gameDto` = payload shape; `StatsService` = stats. |
+| **S** | Handlers only validate + delegate; `GameService` = use cases; `rules.ts` = pure rules; `RaceClock`/`Sweeper` = time; `SocketIoNotifier` = emitting; `gameDto` = payload shape; `StatsService` = stats. |
 | **O** | New game mode = new `ModeStrategy` + registry entry. New quote source = new `QuoteProvider` in the fallback chain. New event consumer = new Kafka consumer group, publishers untouched. |
 | **L** | Every adapter passes its port's **contract test suite** (`InMemoryGameRepository` and `RedisGameRepository` run the same tests; `InProcessEventPublisher` and `KafkaEventPublisher` satisfy the same `EventPublisher` contract). |
-| **I** | Small ports: `QuoteProvider.getQuote()`, `Clock.now()`, `Broadcaster.toRoom()`, `RateLimiter.allow()`, `EventPublisher.publish()`. |
+| **I** | Small ports: `QuoteProvider.getQuote()`, `Clock.now()`, `RateLimiter.allow()`, `RoomMembership.join()`, `EventPublisher.publish()`. Services talk to players through `Notifier` methods in game terms (`gameChanged`, `timer`, `raceOver`), never Socket.IO event names. Handlers only need a 2-method `ConnectionTracker`. |
 | **D** | Services take ports in their constructors; only `container.ts` does `new RedisGameRepository(...)`. Tests pass fakes. |
 
 ### 3.4 Key interfaces (sketch)
@@ -401,12 +402,12 @@ v1 event names are kept (`PROJECT_OVERVIEW.md §6`) so the v1 client works until
 
 | Event | Dir | Payload | Phase |
 |---|---|---|---|
-| `error-message` | S→C | `{code, message}` | 2 |
-| `joined` | S→C | `{gameId, playerId}` | 2 |
+| `error-message` | S→C | `{code, message}`; code ∈ BAD_REQUEST · NOT_FOUND · FORBIDDEN · ROOM_FULL · VALIDATION · INVALID_STATE · INTERNAL | 2 ✅ |
+| `joined` | S→C | `{gameId, playerId}` after create / join / rejoin | 2 ✅ (client uses it in Phase 5) |
 | `get-leaderboard` / `leaderboard` | C→S / S→C | `{mode}` / `{mode, entries:[{nickname, wpm}]}` | 4 |
 | `updateGame` | S→C | v1 shape (`_id`, `players[]` with `_id`, `isJoin`, `isOver`, `words`, `settings`) built by `gameDto` | — |
 | `timer` (C→S) | | `playerId` field ignored; host comes from the session | 0 |
-| room codes | | 6-char codes instead of 24-hex ids | 4 |
+| room codes | | 6-char codes instead of 24-hex ids (case/spaces normalized by the server) | 2 ✅ |
 
 ---
 
@@ -435,8 +436,8 @@ STORE=memory            # memory | redis
 EVENTS=inprocess        # inprocess | kafka
 REDIS_URL=redis://localhost:6379
 KAFKA_BROKERS=localhost:9092
-QUOTES_API_URL=https://api.api-ninjas.com/v2/quotes
-QUOTES_API_KEY=
+API_URL=https://api.api-ninjas.com/v2/quotes
+API_KEY=                # empty = bundled quotes only
 LOG_LEVEL=info
 ```
 Client: `flutter run --dart-define=SERVER_URL=http://<host>`.

@@ -5,9 +5,9 @@
 
 | # | Phase | Machine | Main learning | Status |
 |---|---|---|---|---|
-| 0 | Safety net & quick fixes | Windows | Unit testing basics | 🟨 |
-| 1 | Server rewrite: TypeScript + SOLID (in-memory store, Mongo removed) | Windows | TypeScript, SOLID, DI, test doubles | ⬜ |
-| 2 | Error handling, validation, quotes, room codes | Windows | Fail-safe design, zod, Strategy/Composite | ⬜ |
+| 0 | Safety net & quick fixes | Windows | Unit testing basics | ✅ |
+| 1 | Server rewrite: TypeScript + SOLID (in-memory store, Mongo removed) | Windows | TypeScript, SOLID, DI, test doubles | ✅ |
+| 2 | Error handling, validation, quotes, room codes | Windows | Fail-safe design, zod, Strategy/Composite | 🟨 |
 | — | **Push both repos to GitHub → switch to Ubuntu** | | | ⬜ |
 | 3 | Ubuntu setup + Docker Compose | Ubuntu | Containers | ⬜ |
 | 4 | Redis as the datastore (+ leaderboard, history) | Ubuntu | Redis data modelling, atomicity, TTL | ⬜ |
@@ -43,17 +43,18 @@
 ## Phase 1 — Server rewrite: TypeScript + SOLID (Windows)
 **Goal:** rebuild the server in TypeScript with the layers in `Architecture.md §3`, storing games **in memory** (MongoDB removed). Same socket events and payloads → the current Flutter app works unchanged.
 
-- [ ] Tooling: `typescript`, `tsx`, `@types/node`, `@types/express`, ESLint (`typescript-eslint`), Prettier; `tsconfig.json` (`strict`, `target ES2022`, `module commonjs`, `outDir dist`); scripts `dev` (`tsx watch src/index.ts`), `build` (`tsc`), `start` (`node dist/index.js`), `test`, `lint`, `typecheck`.
-- [ ] `domain/types.ts` + `domain/` pure modules: `rules`, `settings`, `wpm`, `errors`.
-- [ ] `domain/modes/`: `ModeStrategy` + `ClassicMode`, `FlawlessMode`, `SuddenDeathMode` + `modeRegistry`.
-- [ ] `ports/` interfaces: `GameRepository`, `ChatRepository`, `SessionStore`, `QuoteProvider`, `Clock`, `IdGenerator`, `Broadcaster`.
-- [ ] `adapters/memory/*`, `SystemClock`, `RandomIdGenerator`, `SocketIoBroadcaster`, current API Ninjas quote fetch as `ApiNinjasQuoteProvider`.
-- [ ] `services/`: `GameService`, `RaceClock` (still `setInterval`-based on one instance for now), `ChatService`, `PresenceService`, `QuoteService`.
-- [ ] `transport/socket/*` handlers (thin), `gameDto.ts` producing the v1 `updateGame` shape (`_id` fields kept).
-- [ ] `container.ts` composition root; `index.ts` + `app.ts`; `/health` still returns `{ok, db: true, uptime}` (the v1 app checks `db`).
-- [ ] Remove `mongoose`, `Models/`, `MONGO_URL`; delete old JS files once the TS server passes the regression check.
-- [ ] Tests (Vitest): every mode strategy; `GameService` (create, join, room full, spectator, settings validation, correct/wrong word per mode, finish, rematch promotes spectators, host hand-over on leave); `RaceClock` with `FakeClock`; contract suite for `GameRepository` against the in-memory adapter.
-- [ ] Update Render: build `npm ci && npm run build`, start `npm start`, remove `MONGO_URL`.
+- [x] Tooling: `typescript@5`, `tsx`, `@types/*`, ESLint 9 (`typescript-eslint`), Prettier 3; `tsconfig.json` (`strict`, `module nodenext` → CommonJS) + `tsconfig.build.json`; scripts `dev`/`build`/`start`/`typecheck`/`lint`/`format`/`test`.
+- [x] `domain/types.ts` + pure modules: `rules`, `settings`, `time` (wpm/clock), `players`, `errors`, `gameId`.
+- [x] `domain/modes/`: `ModeStrategy` + `BaseMode`, `ClassicMode`, `FlawlessMode`, `SuddenDeathMode`, `ModeRegistry`.
+- [x] `ports/`: `GameRepository`, `ChatRepository`, `SessionStore`, `QuoteProvider`, `Clock`, `Scheduler`, `IdGenerator`, `Notifier`, `RoomMembership`, `RateLimiter`, `Logger`.
+- [x] Adapters: `adapters/memory/*`, `SystemClock`, `IntervalScheduler`, `RandomIdGenerator`, `ApiNinjasQuoteProvider`, `SocketIoNotifier`, `ConsoleLogger`.
+- [x] Services: `GameService`, `RaceClock` (still timer-based, one instance), `ChatService`, `PresenceService`, `QuoteService`.
+- [x] `transport/socket/registerSocketHandlers.ts` (thin), `gameDto.ts` (v1 `updateGame` shape), `transport/http/health.ts`.
+- [x] `container.ts`, `app.ts`, `index.ts`; `/health` still returns `{ok, db: true, uptime}`.
+- [x] Old JS server deleted (`index.js`, `Models/`, `api/`, `config/`, `services/`, `sockets/`, `utils/`, old `.mjs` tests). `mongoose`/`nodemon` uninstall → owner.
+- [x] Tests: 129 (domain, modes, services with fakes, contract suite, memory adapters, DTO, socket handlers). End-to-end smoke with real socket.io v2 clients passed.
+- [x] Owner: `npm uninstall mongoose nodemon`, checks + coverage on Windows, real game with the Flutter app.
+- [x] Render: build `npm ci && npm run build`, start `npm start`, `MONGO_URL` removed.
 
 **Done when:** `npm run typecheck`, `npm run lint`, `npm test` green; ≥ 80 % coverage on `domain/` + `services/`; the unchanged Flutter app plays a full race against the TS server.
 **Learn:** TS types/interfaces/generics, each SOLID letter in real code (`Architecture.md §3.3`), constructor injection, fakes vs mocks.
@@ -63,17 +64,17 @@
 ## Phase 2 — Error handling, validation, quotes, room codes (Windows)
 **Goal:** the server never hangs or crashes on bad input or failing dependencies.
 
-- [ ] `config/env.ts` with zod; fail fast on bad env.
-- [ ] `transport/socket/schemas.ts` (zod per event, types via `z.infer`) + `withHandler`; `error-message` and `joined` events (keep `notCorrectGame` for create/join).
-- [ ] Services throw `DomainError`s; `withHandler` maps them.
-- [ ] `pino` logger with `instanceId`; no `console.log`.
-- [ ] Quotes: `LocalQuoteProvider` (`data/quotes.json`, ≥ 100 quotes), `FallbackQuoteProvider`, API timeout 3 s; `QuoteService.getWords(minWords)` concatenates → **quote length setting works (FR-1, FR-2).**
-- [ ] Short room codes (FR-11): `domain/roomCode.ts`, `RandomIdGenerator.roomCode()`, uniqueness check in the repository. Client: join validation + uppercase input for 6-char codes.
-- [ ] Client: listen to `joined` and `error-message`; Join screen loading + 10 s timeout (FR-5).
-- [ ] `/health/live`, `/health/ready`.
-- [ ] Tests: schemas reject bad payloads; fallback order; min-words; room-code format/uniqueness; `withHandler` mapping; supertest for health routes.
+- [x] `config/env.ts` with zod (`PORT`, `INSTANCE_ID`, `LOG_LEVEL`, `API_URL`, `API_KEY`); fails fast with a readable message.
+- [x] `transport/socket/schemas.ts` (zod per event) + `withHandler.ts` (`createOn`): bad payload → `error-message BAD_REQUEST`, DomainError → `error-message {code}`, other → `INTERNAL` + logged; create/join/rejoin also reply `notCorrectGame`. `joined {gameId, playerId}` after create/join/rejoin.
+- [x] `PinoLogger` (`instanceId` on every line; pretty in a terminal, JSON otherwise); `ConsoleLogger` removed.
+- [x] Quotes: `data/quotes.json` (108 bundled quotes), `LocalQuoteProvider`, `FallbackQuoteProvider` (API Ninjas → local; local only when `API_KEY` is empty), API timeout 3 s; `QuoteService.getWords(minWords)` joins different quotes (max 20) → **quote length setting works.**
+- [x] 6-char room codes (`domain/roomCode.ts`, `RandomIdGenerator.gameId()`, uniqueness retry in `GameService`); handler normalizes case/spaces.
+- [x] Client: `--dart-define=SERVER_URL` (pulled forward from Phase 3); `utils/room_code.dart` + formatter; Join screen validation, spinner, 10 s timeout; lobby shows the code large; `error-message` snackbar on the game screen.
+- [ ] Client: use the `joined` event (store `playerId`) — moved to Phase 5 together with "identify by playerId".
+- [x] `/health/live`, `/health/ready` (`/health` kept for the v1 wake-up check).
+- [x] Tests: 162 server tests (env, schemas, error replies, joined, room codes, quote fallback/length) + `test/unit/room_code_test.dart`. End-to-end smoke with real socket.io v2 clients passed.
 
-**Done when:** an empty `QUOTES_API_KEY` still creates rooms; garbage payloads get `error-message`; rooms use 6-char codes end to end.
+**Done when:** an empty `API_KEY` still creates rooms; garbage payloads get `error-message`; rooms use 6-char codes end to end.
 
 ### ➜ Handover to Ubuntu
 - [ ] Commit + push root repo (`Type_Racer`) and `server/` repo (`TypeRacerServer`) on `phase-2` branches; merge.
@@ -90,7 +91,7 @@
 - [ ] `server/Dockerfile` (multi-stage: build with `tsc`, run on `node:20-slim`, non-root user).
 - [ ] `server/docker-compose.yml`: `app` (1 instance) + `redis:7` (`--appendonly yes`, volume) — Redis not used by code yet, just running.
 - [ ] `.dockerignore`.
-- [ ] Client: `SERVER_URL` via `--dart-define` (FR-14).
+- [x] Client: `SERVER_URL` via `--dart-define` (FR-14) — done in Phase 2.
 - [ ] README: "Run with Docker".
 
 **Done when:** `docker compose up` + `flutter run -d chrome --dart-define=SERVER_URL=http://localhost:3000` plays a full race.

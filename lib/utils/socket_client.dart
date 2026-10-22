@@ -1,8 +1,12 @@
 import 'package:socket_io_client/socket_io_client.dart' as IO;
 
-/// The URL of your hosted server, e.g. 'https://type-racer-xxxx.onrender.com'
-/// (no trailing slash). Copy it from your old socket_client.dart.
-const String kServerUrl = 'https://typ-racer-server.onrender.com';
+/// Server address, chosen at build/run time (no trailing slash):
+///   flutter run -d chrome --dart-define=SERVER_URL=http://localhost:3000
+/// Without --dart-define the app uses the hosted server.
+const String kServerUrl = String.fromEnvironment(
+  'SERVER_URL',
+  defaultValue: 'https://typ-racer-server.onrender.com',
+);
 
 /// One shared socket connection for the whole app.
 class SocketClient {
