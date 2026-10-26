@@ -3,9 +3,9 @@
 > Progress log for AI assistants. Read after `Rules.md`, before coding. Update at the end of every session.
 
 ## Current status
-- Phase: 3 — Ubuntu setup + Docker Compose (✅ done; server branch `phase-3-docker`, app branch `phase-3-docs`). Phases 0–2 ✅ merged.
+- Phase: 4 — Redis as the datastore (🟨 in progress on server branch `phase-4-redis`; steps 4.1–4.4 done, next 4.5 quote pool). Phases 0–3 ✅ merged.
 - Machine: **Ubuntu 22.04** (zsh; Node 20.20.2 via nvm 0.40.3, npm 11.21.1; Docker 29.1.3 from Ubuntu's `docker.io` + `docker-compose-v2`; Flutter 3.47.7 (snap, Dart 3.13.5); Chrome 156). Repos at `~/Code/Project/type_racer` (+ `server/`).
-- Last session: 2026-10-22 — Docker image builds, Compose stack healthy, all tests green on Linux.
+- Last session: 2026-10-26 — server runs on Redis (STORE=redis in Compose); full race + rematch OK on Redis and on memory; room survives `docker compose restart app` in the lobby.
 
 ## Done
 - 2026-10-22 v1 analysed → `PROJECT_OVERVIEW.md`.
@@ -32,6 +32,12 @@
 - 2026-10-22 `server/Dockerfile` (multi-stage `node:20-slim`: build = `npm ci` + `npm run build`; runtime = `npm ci --omit=dev`, `dist/` + `data/`, `USER node`), `.dockerignore` (no node_modules/tests/.git/.env), `docker-compose.yml` (`app` on 3000 with `env_file: .env`, `INSTANCE_ID=app1`, healthcheck via `node -e fetch(/health/ready)`; `redis:7` `--appendonly yes`, volume `redis-data`, port `127.0.0.1:6379`; app waits for healthy Redis). `docker compose up --build -d` → both containers up, `/health` + `/health/ready` OK, JSON logs with `instanceId`.
 - 2026-10-22 README "Getting Started" rewritten: Mongo removed, clone layout, "Run with Docker", Node dev option, `--dart-define=SERVER_URL`.
 
+- 2026-10-22 Phase 3 merged (server `phase-3-docker`, app `phase-3-docs`).
+- 2026-10-23 **Phase 4 step 4.1:** `ioredis@5.11.1` + `ioredis-mock@8.13.1` (dev); env `STORE=memory|redis`, `REDIS_URL`; `infra/redis.ts` (client, `isRedisReady` PING with 1 s timeout); `adapters/redis/keys.ts`; `/health/ready` 503 when Redis is down, `/health` `db` = store status. Checked by hand: 200 → stop Redis → 503 → start → 200.
+- 2026-10-23 **4.2:** `RedisGameRepository` — `game:{id}` hash (words + settings as JSON fields, `seq` for join order), `:players` zset, `:player:{pid}` hashes; Lua scripts (`trAddPlayer` atomic capacity check, `trUpdateGame`/`trUpdatePlayer` no-op on missing game, TTL refresh); `create` = HSETNX reservation + MULTI. Passes the GameRepository contract on ioredis-mock + 7 Redis-only tests (10 concurrent joins into 5 seats → exactly 5).
+- 2026-10-23 **4.3:** `RedisChatRepository` (RPUSH+LTRIM capped list), `RedisSessionStore` (hash, 1 h TTL), `RedisRateLimiter` (`SET NX PX`). `tests/unit/adapters/memory.test.ts` replaced by contract suites for chat/session/rate limiter (memory + Redis).
+- 2026-10-23 **4.4:** `createStores()` in `container.ts` picks adapters by `STORE` — no service changes. Graceful SIGTERM/SIGINT shutdown (closes Socket.IO + Redis). Compose sets `STORE=redis`, `REDIS_URL=redis://redis:6379`. **215 tests.** Verified 2026-10-26: full race + rematch on Redis and memory; room keys + TTL visible in redis-cli; room survives `docker compose restart app` in the lobby.
+
 ## Decisions
 - 2026-10-22 Env var names stay `API_URL` / `API_KEY` (match existing .env and Render), not QUOTES_API_*.
 - 2026-10-22 Pretty logs only when stdout is a terminal, so Render gets JSON without needing NODE_ENV=production (which would make `npm ci` skip the dev dependencies the build needs).
@@ -47,6 +53,10 @@
 - 2026-10-22 Docker comes from Ubuntu's packages (`docker.io`, `docker-compose-v2`), not Docker's apt repo — don't mix the two.
 - 2026-10-22 No `curl` in the slim image → healthchecks use `node -e "fetch(...)"`. Containers must not get a TTY (pino would load `pino-pretty`, a dev dependency).
 
+- 2026-10-23 ioredis pinned to **5.x**: ioredis 6.0.0 exists but ioredis-mock 8.13.1 only supports ^5 (no `--force`). Revisit when the mock supports 6.
+- 2026-10-23 Round words stored as a `words` field in the game hash (not `game:{id}:words`) — always read with the game. Update Architecture.md §5.1 in step 4.7.
+- 2026-10-26 Host leaving hands the room to the next player (existing behaviour, by design); "send everyone home when the host leaves" would be a separate product change.
+
 ## Decisions (Phase 1 design)
 - `Notifier` port (gameChanged/timer/raceOver/playerFinished/chat*/reaction) instead of a generic Broadcaster — services never see Socket.IO event names.
 - `RoomMembership` port: services add a socket to the game room *before* broadcasting (creator must receive the first `updateGame`). In Phase 5 this maps to `io.in(socketId).socketsJoin(room)`, which works across instances.
@@ -58,11 +68,13 @@
 - Create with an empty nickname now replies `notCorrectGame "Please enter your name"` (v1 silently ignored it).
 
 ## Next steps
-1. ~~Full race against the Docker backend~~ — done 2026-10-22.
-2. Commit + push `phase-3-docker` (server) and `phase-3-docs` (app); merge.
-3. Phase 4 — Redis as the datastore (`ioredis`, `RedisGameRepository`, contract suite against `ioredis-mock` + the Compose Redis).
+1. Phase 4 step 4.5 — `RedisQuotePool` (pre-fetched quotes + background refill).
+2. 4.6 — `EventPublisher` + `StatsService` + leaderboard / match history + `get-leaderboard`.
+3. 4.7 — contract suites against the real Compose Redis, latency numbers, docs (Architecture §5.1/§9), merge.
 
 ## Known issues / TODO
+- 2026-10-26 Restarting the app **mid-countdown or mid-race** freezes that room: the phase stays `countdown`/`racing` in Redis but the in-process RaceClock timer is gone, and Start is ignored (phase ≠ lobby). Fixed properly by the Phase 5 Redis sweeper (a startup "reset to lobby" would be wrong with several instances). Lobby restarts are fine.
+- 2026-10-26 The AI's file writes to the device can land late or stale if a file is edited after creation → it now writes each version to a fresh path and verifies the device copy (checksum) after every write. Commit only behind `&&` (format → typecheck → lint → test).
 - 2026-10-22 Node 20 is past end-of-life (April 2026). Kept per plan; consider Node 22 (image + nvm + `engines`) as a small separate change.
 - 2026-10-22 `docker compose` warns "buildx isn't installed" → `sudo apt install docker-buildx` (harmless; classic builder used).
 - 2026-10-22 How the AI works now: the session is linked to the Ubuntu machine; it reads/writes files in `~/Code/Project` but cannot run commands — the owner runs npm/flutter/docker and pastes output.
