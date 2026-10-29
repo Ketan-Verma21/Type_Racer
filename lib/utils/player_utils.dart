@@ -1,12 +1,24 @@
 import 'package:type_racer/utils/socket_client.dart';
 
-/// Returns the player entry that belongs to this device, or null if it
-/// isn't found (e.g. after a reconnect the socket id changes, or the game
-/// state was reset). Always null-check the result.
-dynamic findMe(List players) {
-  final id = SocketClient.instance.socket?.id;
+/// This device's player id in the current game, from the server's `joined`
+/// event. Unlike the socket id it stays the same after a reconnect (even to
+/// another server instance). Null when we're not in a game.
+String? myPlayerId;
+
+/// Returns the player entry that belongs to this device, or null if it isn't
+/// found. Matches the playerId from `joined` first; falls back to the socket
+/// id for the moment between the first `updateGame` and `joined`.
+/// Always null-check the result.
+dynamic findMe(List players, {String? playerId, String? socketId}) {
+  final pid = playerId ?? myPlayerId;
+  if (pid != null) {
+    for (final p in players) {
+      if (p['_id'].toString() == pid) return p;
+    }
+  }
+  final sid = socketId ?? SocketClient.instance.socket?.id;
   for (final p in players) {
-    if (p['socketID'] == id) return p;
+    if (p['socketID'] == sid) return p;
   }
   return null;
 }

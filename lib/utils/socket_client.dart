@@ -1,4 +1,5 @@
 import 'package:socket_io_client/socket_io_client.dart' as IO;
+import 'package:type_racer/utils/player_utils.dart';
 
 /// Server address, chosen at build/run time (no trailing slash):
 ///   flutter run -d chrome --dart-define=SERVER_URL=http://localhost:3000
@@ -27,6 +28,13 @@ class SocketClient {
         'timeout': 20000,
       },
     );
+    // The server tells us who we are after create / join / rejoin.
+    // Registered once for the app's lifetime (screens never off() it).
+    socket!.on('joined', (data) {
+      if (data is Map && data['playerId'] != null) {
+        myPlayerId = data['playerId'].toString();
+      }
+    });
     _connect();
   }
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:type_racer/providers/chat_provider.dart';
 import 'package:type_racer/providers/game_state_provider.dart';
+import 'package:type_racer/utils/player_utils.dart';
 import 'package:type_racer/utils/socket_client.dart';
 import 'package:awesome_snackbar_content/awesome_snackbar_content.dart';
 
@@ -225,6 +226,7 @@ class SocketMethods {
     _socketClient.off('reaction');
     _socketClient.off('error-message');
     is_playing = false;
+    myPlayerId = null; // the next game gives us a new id
   }
 
   // 'done' is sent to a player when they finish. (We no longer stop listening
