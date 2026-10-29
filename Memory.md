@@ -3,9 +3,9 @@
 > Progress log for AI assistants. Read after `Rules.md`, before coding. Update at the end of every session.
 
 ## Current status
-- Phase: 4 — Redis as the datastore (🟨 in progress on server branch `phase-4-redis`; steps 4.1–4.4 done, next 4.5 quote pool). Phases 0–3 ✅ merged.
+- Phase: 4 — Redis as the datastore (✅ done on server branch `phase-4-redis` + app branch `phase-4-docs`; merge next). Phases 0–3 ✅ merged.
 - Machine: **Ubuntu 22.04** (zsh; Node 20.20.2 via nvm 0.40.3, npm 11.21.1; Docker 29.1.3 from Ubuntu's `docker.io` + `docker-compose-v2`; Flutter 3.47.7 (snap, Dart 3.13.5); Chrome 156). Repos at `~/Code/Project/type_racer` (+ `server/`).
-- Last session: 2026-10-26 — server runs on Redis (STORE=redis in Compose); full race + rematch OK on Redis and on memory; room survives `docker compose restart app` in the lobby.
+- Last session: 2026-10-29 — Phase 4 finished: 241 unit/contract tests + 31 real-Redis tests green; latency measured.
 
 ## Done
 - 2026-10-22 v1 analysed → `PROJECT_OVERVIEW.md`.
@@ -38,6 +38,10 @@
 - 2026-10-23 **4.3:** `RedisChatRepository` (RPUSH+LTRIM capped list), `RedisSessionStore` (hash, 1 h TTL), `RedisRateLimiter` (`SET NX PX`). `tests/unit/adapters/memory.test.ts` replaced by contract suites for chat/session/rate limiter (memory + Redis).
 - 2026-10-23 **4.4:** `createStores()` in `container.ts` picks adapters by `STORE` — no service changes. Graceful SIGTERM/SIGINT shutdown (closes Socket.IO + Redis). Compose sets `STORE=redis`, `REDIS_URL=redis://redis:6379`. **215 tests.** Verified 2026-10-26: full race + rematch on Redis and memory; room keys + TTL visible in redis-cli; room survives `docker compose restart app` in the lobby.
 
+- 2026-10-26 **4.5:** `RedisQuotePool` (`quotes:pool` list, LPOP oldest, RPUSH+LTRIM refill ≤10/run every 30 s, target 50) as the first source of the fallback chain pool → API → bundled. Wired only with `STORE=redis` **and** `API_KEY` — the owner has no API key, so the game uses the bundled quotes and the pool stays off. 221 tests.
+- 2026-10-29 **4.6:** `domain/events.ts` (`match.finished` with ranked results), `EventPublisher` port + `InProcessEventPublisher` (failing subscriber logged, never thrown), `StatsService` (leaderboard ignores eliminated / 0 WPM), `Leaderboard` + `MatchHistory` ports with memory + Redis adapters (`leaderboard:{mode}` zset via Lua `trKeepBest`; `matches:recent` 500 + `game:{id}:history` 20), `get-leaderboard` → `leaderboard` socket event. Only service change: `RaceClock.finishRace` publishes (fire and forget). 241 tests.
+- 2026-10-29 **4.7:** `tests/integration/realRedis.test.ts` runs every contract suite on the real Compose Redis (db 15; db 0 refused) + 10 concurrent connections into 5 seats → exactly 5. `npm run test:redis` 31/31. `npm run bench:redis` (see Measurements). Architecture §5.1/§9 and README updated.
+
 ## Decisions
 - 2026-10-22 Env var names stay `API_URL` / `API_KEY` (match existing .env and Render), not QUOTES_API_*.
 - 2026-10-22 Pretty logs only when stdout is a terminal, so Render gets JSON without needing NODE_ENV=production (which would make `npm ci` skip the dev dependencies the build needs).
@@ -57,6 +61,9 @@
 - 2026-10-23 Round words stored as a `words` field in the game hash (not `game:{id}:words`) — always read with the game. Update Architecture.md §5.1 in step 4.7.
 - 2026-10-26 Host leaving hands the room to the next player (existing behaviour, by design); "send everyone home when the host leaves" would be a separate product change.
 
+- 2026-10-29 Leaderboard "keep best" is a Lua script, not `ZADD GT`: ioredis-mock 8.13.1's `zadd` only accepts NX/XX/CH/INCR (checked in its source).
+- 2026-10-29 Leaderboard is keyed by nickname (no accounts) — two players with the same name share an entry. Fine until login exists.
+
 ## Decisions (Phase 1 design)
 - `Notifier` port (gameChanged/timer/raceOver/playerFinished/chat*/reaction) instead of a generic Broadcaster — services never see Socket.IO event names.
 - `RoomMembership` port: services add a socket to the game room *before* broadcasting (creator must receive the first `updateGame`). In Phase 5 this maps to `io.in(socketId).socketsJoin(room)`, which works across instances.
@@ -68,9 +75,8 @@
 - Create with an empty nickname now replies `notCorrectGame "Please enter your name"` (v1 silently ignored it).
 
 ## Next steps
-1. Phase 4 step 4.5 — `RedisQuotePool` (pre-fetched quotes + background refill).
-2. 4.6 — `EventPublisher` + `StatsService` + leaderboard / match history + `get-leaderboard`.
-3. 4.7 — contract suites against the real Compose Redis, latency numbers, docs (Architecture §5.1/§9), merge.
+1. Merge `phase-4-redis` (server) and `phase-4-docs` (app) into master; Render keeps `STORE=memory` (no Redis there yet).
+2. Phase 5 — multi-instance: Socket.IO 2→4 (client `socket_io_client` 1.x→3.x), `@socket.io/redis-adapter`, Redis sweeper for countdown/race clock (fixes the mid-race restart freeze), client identifies itself by `playerId` from `joined`.
 
 ## Known issues / TODO
 - 2026-10-26 Restarting the app **mid-countdown or mid-race** freezes that room: the phase stays `countdown`/`racing` in Redis but the in-process RaceClock timer is gone, and Start is ignored (phase ≠ lobby). Fixed properly by the Phase 5 Redis sweeper (a startup "reset to lobby" would be wrong with several instances). Lobby restarts are fine.
@@ -91,4 +97,6 @@
 - Client: `flutter test` · `flutter run -d chrome --dart-define=SERVER_URL=http://localhost:3000`
 
 ## Measurements
-- (Phase 4+)
+- 2026-10-29 Redis store latency, `npm run bench:redis`, 1000 rounds, local Docker Redis (Ubuntu laptop). Store calls only, not the browser round trip:
+  - join (get + addPlayer + get): p50 0.43 ms · p95 0.69 ms · p99 1.08 ms
+  - word (get + update + get): p50 0.39 ms · p95 0.64 ms · p99 0.97 ms

@@ -140,8 +140,14 @@ Redis is only reachable from this machine (`127.0.0.1:6379`). Rebuild with `--bu
 ```bash
 cd server
 npm ci
-npm run dev        # auto-restarts on changes
-npm test           # unit tests (Vitest)
+npm run dev        # auto-restarts on changes (STORE=memory by default)
+npm test           # unit + contract tests (Vitest), no Docker needed
+```
+
+With Redis running (`docker compose up -d redis`), the same contract tests and a latency benchmark can run against the real thing. They use database 15 and wipe it:
+```bash
+REDIS_TEST_URL=redis://localhost:6379/15 npm run test:redis
+REDIS_TEST_URL=redis://localhost:6379/15 npm run bench:redis
 ```
 
 ### 3. Run the app
