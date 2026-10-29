@@ -10,7 +10,7 @@
 | 2 | Error handling, validation, quotes, room codes | Windows | Fail-safe design, zod, Strategy/Composite | ✅ |
 | — | **Push both repos to GitHub → switch to Ubuntu** | | | ✅ |
 | 3 | Ubuntu setup + Docker Compose | Ubuntu | Containers | ✅ |
-| 4 | Redis as the datastore (+ leaderboard, history) | Ubuntu | Redis data modelling, atomicity, TTL | ⬜ |
+| 4 | Redis as the datastore (+ leaderboard, history) | Ubuntu | Redis data modelling, atomicity, TTL | ✅ |
 | 5 | Multi-instance: Socket.IO v4, Redis adapter, distributed clock | Ubuntu | Horizontal scaling, pub/sub, distributed claims | ⬜ |
 | 6 | Nginx load balancer & load testing | Ubuntu | Reverse proxy, WebSockets, measuring scale | ⬜ |
 | 7 | Kafka event streaming + stats-worker | Ubuntu | Topics, partitions, consumer groups, replay | ⬜ |
@@ -101,13 +101,14 @@
 ## Phase 4 — Redis as the datastore (Ubuntu)
 **Goal:** swap in-memory adapters for Redis adapters; services unchanged.
 
-- [ ] `infra/redis.ts`, `adapters/redis/keys.ts`.
-- [ ] `RedisGameRepository` per `Architecture.md §5.1`; Lua script for atomic capacity-checked join; per-player hashes; TTL 2 h refreshed on activity (FR-10).
-- [ ] `RedisChatRepository`, `RedisSessionStore`, `RedisRateLimiter` (FR-9), `RedisQuotePool` with background refill (FR-3).
-- [ ] `EventPublisher` port + `InProcessEventPublisher` → `StatsService` → `RedisLeaderboard` (`ZADD GT`) + `RedisMatchHistory` (capped lists) (FR-12, FR-15).
-- [ ] `get-leaderboard` socket event.
-- [ ] `container.ts`: `STORE=redis` selects Redis adapters. **No service code changes** (DIP payoff).
-- [ ] Tests: every Redis adapter passes the same contract suite as the memory adapter (`ioredis-mock`, plus a real-Redis run via Compose); `StatsService` unit tests; leaderboard keeps the best score only.
+- [x] `infra/redis.ts`, `adapters/redis/keys.ts`.
+- [x] `RedisGameRepository` per `Architecture.md §5.1`; Lua script for atomic capacity-checked join; per-player hashes; TTL 2 h refreshed on activity (FR-10).
+- [x] `RedisChatRepository`, `RedisSessionStore`, `RedisRateLimiter` (FR-9).
+- [x] `RedisQuotePool` with background refill (FR-3) — only used when `API_KEY` is set.
+- [x] `EventPublisher` port + `InProcessEventPublisher` → `StatsService` → `RedisLeaderboard` (Lua keep-best instead of `ZADD GT`) + `RedisMatchHistory` (capped lists) (FR-12, FR-15).
+- [x] `get-leaderboard` socket event (server only).
+- [x] `container.ts`: `STORE=redis` selects Redis adapters. **No service code changes** (DIP payoff).
+- [x] Tests: every Redis adapter passes the same contract suite as the memory adapter (`ioredis-mock`, plus a real-Redis run via Compose); `StatsService` unit tests; leaderboard keeps the best score only.
 
 **Done when:** full race with `STORE=redis`; restart the app container mid-lobby → room still there; join/word latency recorded in `Memory.md`.
 **Learn:** hashes vs strings vs sorted sets vs lists, TTL, Lua atomicity, AOF persistence.

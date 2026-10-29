@@ -276,27 +276,41 @@ Handlers never crash the process. Services throw typed `DomainError`s instead of
 
 ### 5.1 Keys
 
+As built in Phase 4 (✅) — later rows are marked with their phase.
+
 | Key | Type | Contents | TTL |
 |---|---|---|---|
-| `room:{code}` | string | code reservation | 2 h |
-| `game:{code}` | hash | `phase` (lobby·countdown·racing·over), `mode`, `timeLimit`, `length`, `maxPlayers`, `hostId`, `round`, `startTime`, `endsAt`, `countdownEndsAt`, `createdAt` | 2 h, refreshed on activity |
-| `game:{code}:words` | string (JSON) | words of the current round | same |
-| `game:{code}:players` | sorted set | playerIds, score = join time (lane order) | same |
-| `game:{code}:player:{pid}` | hash | `nickname`, `socketId`, `idx`, `wpm`, `isSpectator`, `isEliminated`, `mistakes`, `connected` | same |
-| `game:{code}:chat` | list | last 30 messages | same |
-| `game:{code}:history` | list | last 20 round results | same |
+| `game:{code}` | hash | `phase` (lobby·countdown·racing·over), `words` (JSON), `settings` (JSON: mode, timeLimit, length, maxPlayers), `round`, `createdAt`, `startTime`, `seq` (join counter) | 2 h, refreshed on every write |
+| `game:{code}:players` | sorted set | playerIds, score = join order (`seq`) | same |
+| `game:{code}:player:{pid}` | hash | `nickname`, `socketId`, `isHost`, `wordIndex`, `wpm`, `isSpectator`, `isEliminated`, `mistakes`, `joinedAt` (booleans as `1`/`0`) | same |
+| `game:{code}:chat` | list | last 30 messages (JSON), `RPUSH` + `LTRIM` | same |
+| `game:{code}:history` | list | last 20 round results (JSON), `LPUSH` + `LTRIM` | same |
 | `socket:{socketId}` | hash | `gameId`, `playerId`, `nickname` | 1 h |
-| `games:countdown` / `games:racing` | sorted set | code → deadline (ms) | — |
-| `presence:grace` | sorted set | `{code}:{pid}` → removal time | — |
-| `tick:{code}:{n}` | string | per-second tick claim | 5 s |
-| `quotes:pool` | list | pre-fetched quotes | — |
-| `rl:{event}:{socketId}` | string counter | rate-limit window | window |
-| `leaderboard:{mode}` | sorted set | `nickname` → best WPM (`ZADD GT`) | — |
+| `rl:{event}:{socketId}` | string | rate-limit marker: `SET … PX {interval} NX` | interval |
+| `quotes:pool` | list | pre-fetched API quotes (only when `API_KEY` is set) | — |
+| `leaderboard:{mode}` | sorted set | `nickname` → best WPM (Lua keep-best) | — |
 | `matches:recent` | list | last 500 match results (JSON) | — |
-| `stats:done:{gameId}:{round}` | string | idempotency marker for the worker | 1 day |
-| Socket.IO adapter | pub/sub | managed by `@socket.io/redis-adapter` | — |
+| `games:countdown` / `games:racing` | sorted set | code → deadline (ms) | — (Phase 5) |
+| `presence:grace` | sorted set | `{code}:{pid}` → removal time | — (Phase 5) |
+| `tick:{code}:{n}` | string | per-second tick claim | 5 s (Phase 5) |
+| `stats:done:{gameId}:{round}` | string | idempotency marker for the worker | 1 day (Phase 7) |
+| Socket.IO adapter | pub/sub | managed by `@socket.io/redis-adapter` | — (Phase 5) |
 
 All keys are built by `adapters/redis/keys.ts` — never inline strings.
+
+Changes from the original plan (Phase 4):
+- No `room:{code}` key: `create` reserves the id with `HSETNX game:{code} createdAt …`, then writes the rest in one `MULTI`.
+- No `game:{code}:words` key: words are a field of the game hash, because they're always read with the game.
+- Leaderboard uses a Lua "keep best" script instead of `ZADD GT` — ioredis-mock doesn't support `GT`, and one implementation keeps tests and production identical.
+
+### 5.1.1 Lua scripts (`adapters/redis/scripts.ts`)
+| Script | Why it must be atomic |
+|---|---|
+| `trAddPlayer` | count racers + add the player in one step, so two joins can't both take the last seat |
+| `trUpdateGame` / `trUpdatePlayer` | write only if the game (and player) still exist, so a late update can't bring a deleted room back; refresh TTLs |
+| `trKeepBest` | read the stored score and replace it only if the new one is higher |
+
+Verified on real Redis: 10 joins over 10 connections into a 5-seat room → exactly 5 `ok`.
 
 ### 5.2 Why Redis is the source of truth (and why MongoDB was removed)
 Rooms live for minutes and need sub-millisecond reads/writes; a cache in front of Mongo would still write Mongo on every word and the two copies would drift. The only durable data left (leaderboard, recent matches) fits Redis sorted sets and capped lists. In Docker, Redis runs with `--appendonly yes` so this survives restarts; on Render's free Key Value it is best-effort. If accounts are added later, a relational DB (PostgreSQL) comes back for user data.
@@ -404,7 +418,7 @@ v1 event names are kept (`PROJECT_OVERVIEW.md §6`) so the v1 client works until
 |---|---|---|---|
 | `error-message` | S→C | `{code, message}`; code ∈ BAD_REQUEST · NOT_FOUND · FORBIDDEN · ROOM_FULL · VALIDATION · INVALID_STATE · INTERNAL | 2 ✅ |
 | `joined` | S→C | `{gameId, playerId}` after create / join / rejoin | 2 ✅ (client uses it in Phase 5) |
-| `get-leaderboard` / `leaderboard` | C→S / S→C | `{mode}` / `{mode, entries:[{nickname, wpm}]}` | 4 |
+| `get-leaderboard` / `leaderboard` | C→S / S→C | `{mode}` (unknown mode → `BAD_REQUEST`) / `{mode, entries:[{nickname, wpm}]}` (top 10) | 4 ✅ (server only; no client screen yet) |
 | `updateGame` | S→C | v1 shape (`_id`, `players[]` with `_id`, `isJoin`, `isOver`, `words`, `settings`) built by `gameDto` | — |
 | `timer` (C→S) | | `playerId` field ignored; host comes from the session | 0 |
 | room codes | | 6-char codes instead of 24-hex ids (case/spaces normalized by the server) | 2 ✅ |
