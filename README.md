@@ -56,21 +56,6 @@ Create a room, share the code, and race your friends to type the same quote the 
 - **Redis as the datastore** – Lua scripts make "take the last seat" atomic, rooms clean themselves up after 2 hours, and there's a leaderboard and match history.
 - **Tested** – 280+ server tests, including contract tests that every storage adapter (in-memory and Redis) must pass, and end-to-end tests with real sockets and two real servers.
 
-## 🖼️ Screenshots
-
-<!--
-  Paste your screenshots here. Example:
-  <img src="PASTE_IMAGE_URL" alt="Home" width="260" />
--->
-
-| Home | Create / Join | Lobby |
-|:---:|:---:|:---:|
-| _screenshot_ | _screenshot_ | _screenshot_ |
-
-| Race | Spectator | Results |
-|:---:|:---:|:---:|
-| _screenshot_ | _screenshot_ | _screenshot_ |
-
 ## 🧱 Tech Stack
 
 | Layer | Technology |
