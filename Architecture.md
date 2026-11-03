@@ -252,6 +252,8 @@ Handlers never crash the process. Services throw typed `DomainError`s instead of
 4. Broadcast `updateGame`; if `mode.shouldEnd(game)` → `RaceClock.end`. A player finishing publishes `player.finished`.
 
 ### 4.4 Countdown & race clock (instance-independent)
+> **As built (Phase 5):** one sorted set `games:clock` (game → next deadline) instead of two; start = `ZADD NX`; tick claim = `SET tick:{code}:{deadline}:{n} NX EX 5`; transitions claimed with a Lua compare-and-remove (`trClaimDue`: remove only if the score is still the deadline we saw), so a slow instance can't claim the next phase's entry. All times are whole seconds (deadlines snapped to the second; each sweep rounds "now"), so instances agree on the second despite timer jitter. `services/Sweeper.ts` + `services/RaceClock.ts` + `ports/RaceSchedule.ts`.
+
 - Host `timer` → `phase=countdown`, `countdownEndsAt = now + 5000`, `ZADD games:countdown`.
 - Every instance runs `Sweeper` **once per second** (aligned to the wall-clock second):
   - **Ticks:** for each active game, `SET tick:{code}:{secondsLeft} 1 NX EX 5`; the instance that wins emits that second's `timer` event — exactly one emit per second, from whichever instance is alive.
@@ -260,6 +262,8 @@ Handlers never crash the process. Services throw typed `DomainError`s instead of
 - Cost ≈ 2–3 Redis commands per instance per second + 1 per active game per second → fits free tiers.
 
 ### 4.5 Disconnect / reconnect
+> **As built (Phase 5):** `presence:grace` zset via `ports/GracePeriods.ts`; expiry claimed with the same `trClaimDue` script (so a player who dropped again keeps the new 15 s). Room joins use `io.local.in(socketId).socketsJoin()`: the Redis adapter's non-local `socketsJoin` is applied only when its pub/sub request comes back, so the first `updateGame` after create would be missed (bug found 2026-11-03, regression test in `tests/integration/twoServers.test.ts`).
+
 1. `disconnect` → `connected=0`, `ZADD presence:grace now+15000 {code}:{pid}`.
 2. Reconnect (any instance) → `rejoin-game {gameId, playerId}` → `ZREM presence:grace` → new `socketId`, new session, join room, broadcast.
 3. Expired grace → sweeper removes the player, hands over host if needed, may end the race.
@@ -290,11 +294,11 @@ As built in Phase 4 (✅) — later rows are marked with their phase.
 | `quotes:pool` | list | pre-fetched API quotes (only when `API_KEY` is set) | — |
 | `leaderboard:{mode}` | sorted set | `nickname` → best WPM (Lua keep-best) | — |
 | `matches:recent` | list | last 500 match results (JSON) | — |
-| `games:countdown` / `games:racing` | sorted set | code → deadline (ms) | — (Phase 5) |
-| `presence:grace` | sorted set | `{code}:{pid}` → removal time | — (Phase 5) |
-| `tick:{code}:{n}` | string | per-second tick claim | 5 s (Phase 5) |
+| `games:clock` | sorted set | code → next deadline (ms): end of countdown or of race | — (Phase 5 ✅) |
+| `presence:grace` | sorted set | `{code}:{pid}` → removal time | — (Phase 5 ✅) |
+| `tick:{code}:{deadline}:{n}` | string | per-second tick claim | 5 s (Phase 5 ✅) |
 | `stats:done:{gameId}:{round}` | string | idempotency marker for the worker | 1 day (Phase 7) |
-| Socket.IO adapter | pub/sub | managed by `@socket.io/redis-adapter` | — (Phase 5) |
+| Socket.IO adapter | pub/sub | `@socket.io/redis-adapter` 8.3.0, own pub + sub connections | — (Phase 5 ✅) |
 
 All keys are built by `adapters/redis/keys.ts` — never inline strings.
 
@@ -417,7 +421,7 @@ v1 event names are kept (`PROJECT_OVERVIEW.md §6`) so the v1 client works until
 | Event | Dir | Payload | Phase |
 |---|---|---|---|
 | `error-message` | S→C | `{code, message}`; code ∈ BAD_REQUEST · NOT_FOUND · FORBIDDEN · ROOM_FULL · VALIDATION · INVALID_STATE · INTERNAL | 2 ✅ |
-| `joined` | S→C | `{gameId, playerId}` after create / join / rejoin | 2 ✅ (client uses it in Phase 5) |
+| `joined` | S→C | `{gameId, playerId}` after create / join / rejoin | 2 ✅; client uses it since 5 ✅ (`myPlayerId`) |
 | `get-leaderboard` / `leaderboard` | C→S / S→C | `{mode}` (unknown mode → `BAD_REQUEST`) / `{mode, entries:[{nickname, wpm}]}` (top 10) | 4 ✅ (server only; no client screen yet) |
 | `updateGame` | S→C | v1 shape (`_id`, `players[]` with `_id`, `isJoin`, `isOver`, `words`, `settings`) built by `gameDto` | — |
 | `timer` (C→S) | | `playerId` field ignored; host comes from the session | 0 |

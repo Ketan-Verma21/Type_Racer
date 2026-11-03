@@ -10,9 +10,11 @@ Map<String, dynamic> player(
   num wpm = -1,
   bool spectator = false,
   bool eliminated = false,
+  String? socket,
 }) =>
     {
       '_id': name,
+      'socketID': socket ?? 'socket-$name',
       'nickname': name,
       'currentWordIndex': idx,
       'WPM': wpm,
@@ -21,6 +23,28 @@ Map<String, dynamic> player(
     };
 
 void main() {
+  group('findMe', () {
+    final players = [player('a'), player('b'), player('c')];
+
+    test('finds this device by its playerId', () {
+      expect(findMe(players, playerId: 'b')['nickname'], 'b');
+    });
+
+    test('still finds me after a reconnect changed my socket id', () {
+      final afterReconnect = [player('a'), player('b', socket: 'old-socket')];
+
+      expect(findMe(afterReconnect, playerId: 'b', socketId: 'new-socket')['_id'], 'b');
+    });
+
+    test('falls back to the socket id before `joined` has arrived', () {
+      expect(findMe(players, playerId: 'unknown', socketId: 'socket-c')['_id'], 'c');
+    });
+
+    test('returns null when this device is not in the game', () {
+      expect(findMe(players, playerId: 'zz', socketId: 'nope'), isNull);
+    });
+  });
+
   group('racersOf', () {
     test('leaves out spectators', () {
       final players = [player('a'), player('b', spectator: true), player('c')];
