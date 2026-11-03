@@ -11,7 +11,7 @@
 | — | **Push both repos to GitHub → switch to Ubuntu** | | | ✅ |
 | 3 | Ubuntu setup + Docker Compose | Ubuntu | Containers | ✅ |
 | 4 | Redis as the datastore (+ leaderboard, history) | Ubuntu | Redis data modelling, atomicity, TTL | ✅ |
-| 5 | Multi-instance: Socket.IO v4, Redis adapter, distributed clock | Ubuntu | Horizontal scaling, pub/sub, distributed claims | ⬜ |
+| 5 | Multi-instance: Socket.IO v4, Redis adapter, distributed clock | Ubuntu | Horizontal scaling, pub/sub, distributed claims | ✅ |
 | 6 | Nginx load balancer & load testing | Ubuntu | Reverse proxy, WebSockets, measuring scale | ⬜ |
 | 7 | Kafka event streaming + stats-worker | Ubuntu | Topics, partitions, consumer groups, replay | ⬜ |
 | 8 | Flutter SOLID refactor & tests | either | Client architecture, widget tests | ⬜ |
@@ -118,13 +118,14 @@
 ## Phase 5 — Multi-instance (Ubuntu) — client + server ship together
 **Goal:** any number of instances serve the same room.
 
-- [ ] Server `socket.io` 2 → 4; client `socket_io_client` 1.x → 3.x; fix API differences.
-- [ ] `@socket.io/redis-adapter` with dedicated pub/sub connections.
-- [ ] `Sweeper` (1 s, aligned) replacing every `setInterval` that holds state: tick claims, countdown/race transitions, presence expiry (`Architecture.md §4.4–4.5`).
-- [ ] Client identifies itself by `playerId` from `joined`; `rejoin-game` uses it.
-- [ ] Tests: two `Sweeper`s sharing one fake Redis emit each tick once; transition claimed once; presence expiry; integration test with **two in-process servers** sharing Redis (player on A sees a word typed on B).
+- [x] Server `socket.io` 2 → 4; client `socket_io_client` 1.x → 3.x; fix API differences.
+- [x] `@socket.io/redis-adapter` with dedicated pub/sub connections.
+- [x] `Sweeper` (1 s, aligned) replacing every `setInterval` that holds state: tick claims, countdown/race transitions, presence expiry (`Architecture.md §4.4–4.5`).
+- [x] Client identifies itself by `playerId` from `joined`; `rejoin-game` uses it.
+- [x] Tests: two `Sweeper`s sharing one fake Redis emit each tick once; transition claimed once; presence expiry; integration test with **two in-process servers** sharing Redis (player on A sees a word typed on B).
 
 **Done when:** 2 instances on different ports, players split across them, full race works; kill the instance that started the countdown → race still ticks and ends.
+✅ 2026-11-03: `app1` :3000 + `app2` :3001 in Compose; owner reported play across both servers and the kill test done.
 **Learn:** pub/sub, why in-memory timers break with N instances, claims with `SET NX`/`ZREM`, idempotency.
 
 ---

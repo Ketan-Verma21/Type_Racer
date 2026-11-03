@@ -3,9 +3,9 @@
 > Progress log for AI assistants. Read after `Rules.md`, before coding. Update at the end of every session.
 
 ## Current status
-- Phase: 4 — Redis as the datastore (✅ done on server branch `phase-4-redis` + app branch `phase-4-docs`; merge next). Phases 0–3 ✅ merged.
+- Phase: 5 — Multi-instance (✅ done on server branch `phase-5-multi-instance` + app branch `phase-5-client`; merge next). Phases 0–4 ✅ merged.
 - Machine: **Ubuntu 22.04** (zsh; Node 20.20.2 via nvm 0.40.3, npm 11.21.1; Docker 29.1.3 from Ubuntu's `docker.io` + `docker-compose-v2`; Flutter 3.47.7 (snap, Dart 3.13.5); Chrome 156). Repos at `~/Code/Project/type_racer` (+ `server/`).
-- Last session: 2026-10-29 — Phase 4 finished: 241 unit/contract tests + 31 real-Redis tests green; latency measured.
+- Last session: 2026-11-04 — Phase 5 finished and documented; READMEs updated with the demo video for the GitHub showcase.
 
 ## Done
 - 2026-10-22 v1 analysed → `PROJECT_OVERVIEW.md`.
@@ -42,6 +42,13 @@
 - 2026-10-29 **4.6:** `domain/events.ts` (`match.finished` with ranked results), `EventPublisher` port + `InProcessEventPublisher` (failing subscriber logged, never thrown), `StatsService` (leaderboard ignores eliminated / 0 WPM), `Leaderboard` + `MatchHistory` ports with memory + Redis adapters (`leaderboard:{mode}` zset via Lua `trKeepBest`; `matches:recent` 500 + `game:{id}:history` 20), `get-leaderboard` → `leaderboard` socket event. Only service change: `RaceClock.finishRace` publishes (fire and forget). 241 tests.
 - 2026-10-29 **4.7:** `tests/integration/realRedis.test.ts` runs every contract suite on the real Compose Redis (db 15; db 0 refused) + 10 concurrent connections into 5 seats → exactly 5. `npm run test:redis` 31/31. `npm run bench:redis` (see Measurements). Architecture §5.1/§9 and README updated.
 
+- 2026-10-29 **5.1:** server Socket.IO **4.8.4** (+ `socket.io-client` 4.8.4 dev), `@types/socket.io` removed; `transport/socket/createSocketServer.ts` (cors `*`); end-to-end test `tests/integration/socketE2E.test.ts` (real server + real v4 clients). Server **README.md** written (kept up to date in every server commit). `npm audit fix` → body-parser 1.20.9, 0 vulnerabilities. 245 tests.
+- 2026-10-29 **5.2:** app `socket_io_client` **3.1.6**; `myPlayerId` from `joined` (`player_utils.dart`, set in `socket_client.dart`, cleared on leave); `findMe` matches playerId first, socket id as fallback; 4 new Flutter tests (27). Server `allowEIO3` removed.
+- 2026-10-29 **5.3:** `@socket.io/redis-adapter` **8.3.0** (`infra/redisAdapter.ts`, own pub/sub connections); `ConnectionTracker` + local socket map removed; `tests/integration/twoServers.test.ts` (two in-process servers on real Redis).
+- 2026-10-29 **5.4:** race clock in Redis — `ports/RaceSchedule.ts` (memory + Redis, `games:clock`), `services/Sweeper.ts` (whole-second aligned, no overlap), `RaceClock` rewritten (claims for ticks and transitions, whole-second times). `buildContainer` returns a `Container` with `stop()`. Same timing as before (5..0, race starts the next second). Owner checked: restart mid-race → race carries on.
+- 2026-11-03 **5.5:** reconnect grace in Redis — `ports/GracePeriods.ts` (`presence:grace`), `PresenceService` swept by the Sweeper; drop on A + rejoin on B keeps the player. Owner reported 282 tests + 4 skipped, 50 real-Redis.
+- 2026-11-03 **5.6:** Compose runs `app1` (:3000) + `app2` (:3001) from one `x-app` block. **Bug found by the owner:** Create timed out with the Redis adapter — its non-local `socketsJoin` lands only after a pub/sub round trip, so the creator missed the first `updateGame`. Fix: `io.local.in(id).socketsJoin()` (a socket is always joined by its own server). Regression test in `twoServers.test.ts` (run without the fix first, then with it). Owner reported all checks done, including play across both servers and the kill test (stop app1 mid-countdown).
+
 ## Decisions
 - 2026-10-22 Env var names stay `API_URL` / `API_KEY` (match existing .env and Render), not QUOTES_API_*.
 - 2026-10-22 Pretty logs only when stdout is a terminal, so Render gets JSON without needing NODE_ENV=production (which would make `npm ci` skip the dev dependencies the build needs).
@@ -64,6 +71,10 @@
 - 2026-10-29 Leaderboard "keep best" is a Lua script, not `ZADD GT`: ioredis-mock 8.13.1's `zadd` only accepts NX/XX/CH/INCR (checked in its source).
 - 2026-10-29 Leaderboard is keyed by nickname (no accounts) — two players with the same name share an entry. Fine until login exists.
 
+- 2026-10-29 One `games:clock` zset (not `games:countdown` + `games:racing`); transitions claimed with Lua compare-and-remove, not a bare `ZREM` (a bare ZREM by a slow instance could remove the next phase's entry).
+- 2026-10-29 Clock times are whole seconds: deadlines snapped to the second, sweeps round "now" — otherwise a mid-second Start showed 6 first and timer jitter skipped/repeated numbers.
+- 2026-11-03 Room join/leave are **local** (`io.local.in(socketId)`): every join/leave is done by the server the socket is connected to; broadcasts still cross servers through the adapter.
+
 ## Decisions (Phase 1 design)
 - `Notifier` port (gameChanged/timer/raceOver/playerFinished/chat*/reaction) instead of a generic Broadcaster — services never see Socket.IO event names.
 - `RoomMembership` port: services add a socket to the game room *before* broadcasting (creator must receive the first `updateGame`). In Phase 5 this maps to `io.in(socketId).socketsJoin(room)`, which works across instances.
@@ -75,11 +86,12 @@
 - Create with an empty nickname now replies `notCorrectGame "Please enter your name"` (v1 silently ignored it).
 
 ## Next steps
-1. Merge `phase-4-redis` (server) and `phase-4-docs` (app) into master; Render keeps `STORE=memory` (no Redis there yet).
-2. Phase 5 — multi-instance: Socket.IO 2→4 (client `socket_io_client` 1.x→3.x), `@socket.io/redis-adapter`, Redis sweeper for countdown/race clock (fixes the mid-race restart freeze), client identifies itself by `playerId` from `joined`.
+1. Merge `phase-5-multi-instance` (server) and `phase-5-client` (app) into master; GitHub showcase (description, topics, pin).
+2. Phase 6 — Nginx in front of app1..app3 (one address for players, WebSocket upgrade) + Artillery load test; record numbers in Measurements.
 
 ## Known issues / TODO
-- 2026-10-26 Restarting the app **mid-countdown or mid-race** freezes that room: the phase stays `countdown`/`racing` in Redis but the in-process RaceClock timer is gone, and Start is ignored (phase ≠ lobby). Fixed properly by the Phase 5 Redis sweeper (a startup "reset to lobby" would be wrong with several instances). Lobby restarts are fine.
+- ~~2026-10-26 Restarting the app mid-countdown or mid-race froze that room~~ — fixed in Phase 5.4 (race clock in Redis).
+- 2026-11-03 Crash window: between claiming a deadline and scheduling the next phase, a crash leaves that room without a clock entry (stuck). Rare; a "repair stuck rooms" sweep could fix it later.
 - 2026-10-26 The AI's file writes to the device can land late or stale if a file is edited after creation → it now writes each version to a fresh path and verifies the device copy (checksum) after every write. Commit only behind `&&` (format → typecheck → lint → test).
 - 2026-10-22 Node 20 is past end-of-life (April 2026). Kept per plan; consider Node 22 (image + nvm + `engines`) as a small separate change.
 - 2026-10-22 `docker compose` warns "buildx isn't installed" → `sudo apt install docker-buildx` (harmless; classic builder used).
@@ -93,7 +105,7 @@
 
 ## Useful commands
 - Server: `cd server && npm run dev` · `npm test` · `npm run test:coverage`
-- Docker: `cd server && docker compose up --build -d` · `docker compose ps` · `docker compose logs -f app` · `docker compose down`
+- Docker: `cd server && docker compose up --build -d` · `docker compose ps` · `docker compose logs -f app1 app2` · `docker compose stop app1` (kill test) · `docker compose down`
 - Client: `flutter test` · `flutter run -d chrome --dart-define=SERVER_URL=http://localhost:3000`
 
 ## Measurements
