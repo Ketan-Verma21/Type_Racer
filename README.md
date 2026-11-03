@@ -50,10 +50,6 @@ Create a room, share the code, and race your friends to type the same quote the 
 - **Winner celebration** – confetti, sound effects and haptic feedback (with a mute button).
 - **Resilient connections** – a dropped player has 15 seconds to reconnect and keep their place; leaving players are removed cleanly and the host role is passed on.
 
-<<<<<<< HEAD
-## 🖼️ Demo Video
-[![Watch the demo](https://img.youtube.com/vi/h-L4iLzStZU/hqdefault.jpg)](https://youtu.be/h-L4iLzStZU)
-=======
 ### Under the hood
 - **Server-authoritative** – the app only sends typed words; the server checks every word, runs the clock and computes WPM, so scores can't be faked.
 - **Runs on several servers at once** – two game servers share one Redis: players on different servers race in the same room, and **a race keeps going even if the server that started it crashes**.
@@ -74,7 +70,6 @@ Create a room, share the code, and race your friends to type the same quote the 
 | Race | Spectator | Results |
 |:---:|:---:|:---:|
 | _screenshot_ | _screenshot_ | _screenshot_ |
->>>>>>> phase-5-client
 
 ## 🧱 Tech Stack
 
