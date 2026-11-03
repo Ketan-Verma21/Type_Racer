@@ -44,20 +44,8 @@ Create a room, share the code, and race your friends to type the same quote the 
 - **Winner celebration** – confetti, sound effects and haptic feedback (with a mute button).
 - **Resilient connections** – a dropped player has 15 seconds to reconnect and keep their place; leaving players are removed cleanly and the host role is passed on.
 
-## 🖼️ Screenshots
-
-<!--
-  Paste your screenshots here. Example:
-  <img src="PASTE_IMAGE_URL" alt="Home" width="260" />
--->
-
-| Home | Create / Join | Lobby |
-|:---:|:---:|:---:|
-| _screenshot_ | _screenshot_ | _screenshot_ |
-
-| Race | Spectator | Results |
-|:---:|:---:|:---:|
-| _screenshot_ | _screenshot_ | _screenshot_ |
+## 🖼️ Demo Video
+[![Watch the demo](https://img.youtube.com/vi/h-L4iLzStZU/hqdefault.jpg)](https://youtu.be/h-L4iLzStZU)
 
 ## 🧱 Tech Stack
 
