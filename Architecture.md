@@ -341,6 +341,7 @@ Only immutable data: quote words per `{code}:{round}` (LRU, 500 entries).
 ---
 
 ## 7. Nginx
+> **As built (Phase 6):** `server/nginx/nginx.conf` uses **`least_conn` instead of `ip_hash`** (WebSocket-only server, so no stickiness needed; `ip_hash` would put a one-IP load test on one server), `zone` + `resolve` + `resolver 127.0.0.11` (a restarted container rejoins), `max_fails=3 fail_timeout=10s`, and `proxy_connect_timeout 2s` + `proxy_next_upstream error timeout` + `proxy_next_upstream_tries 3` (found by the load test: a stopped server otherwise hangs new connections for 60 s). Nginx is published on **:8080**. Results: `server/docs/load-test.md`.
 
 ```nginx
 upstream typeracer_app {

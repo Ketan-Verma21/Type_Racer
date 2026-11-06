@@ -3,9 +3,9 @@
 > Progress log for AI assistants. Read after `Rules.md`, before coding. Update at the end of every session.
 
 ## Current status
-- Phase: 5 — Multi-instance (✅ done on server branch `phase-5-multi-instance` + app branch `phase-5-client`; merge next). Phases 0–4 ✅ merged.
+- Phase: 6 — Nginx & load testing (✅ done on server branch `phase-6-nginx-load`; app docs on `phase-6-docs`; merge next). Phases 0–5 ✅ merged.
 - Machine: **Ubuntu 22.04** (zsh; Node 20.20.2 via nvm 0.40.3, npm 11.21.1; Docker 29.1.3 from Ubuntu's `docker.io` + `docker-compose-v2`; Flutter 3.47.7 (snap, Dart 3.13.5); Chrome 156). Repos at `~/Code/Project/type_racer` (+ `server/`).
-- Last session: 2026-11-04 — Phase 5 finished and documented; READMEs updated with the demo video for the GitHub showcase.
+- Last session: 2026-11-06 — Phase 6: Nginx + 3 servers, load generator, 1,000/2,000-player runs, kill test; report in `server/docs/load-test.md`.
 
 ## Done
 - 2026-10-22 v1 analysed → `PROJECT_OVERVIEW.md`.
@@ -51,6 +51,11 @@
 
 - 2026-11-04 App repo connected to **Codemagic** by the owner: it builds the Flutter web app; status badge added to the README. Server CI (GitHub Actions) is still Phase 9.
 
+- 2026-11-04 **6.1:** `server/nginx/nginx.conf` + Compose `nginx` (:8080) → `app1..app3` → `redis`; game servers no longer published. `least_conn` (not `ip_hash`), server `transports: ["websocket"]`, Nginx 1.28 `resolve` + Docker DNS (`127.0.0.11`) so a restarted server rejoins; `/health/live` returns `instance`. 283 tests.
+- 2026-11-04 **6.2:** load generator `tests/load/` (`bot.ts`, `room.ts`, `run.ts`, `metrics.ts`; `npm run load -- --rooms N`), results JSON in `load-results/` (git-ignored). Smoke: 5 rooms, p95 13 ms.
+- 2026-11-06 **6.3/6.4:** full runs (see Measurements). **Bug found:** with app2/app3 stopped, 58/125 rooms timed out — Nginx's default 60 s `proxy_connect_timeout` kept sending connections to dead servers. Fix: `proxy_connect_timeout 2s` + `proxy_next_upstream error timeout` + `proxy_next_upstream_tries 3` → 125/125.
+- 2026-11-06 **6.5:** `server/docs/load-test.md` + README "Performance" section.
+
 ## Decisions
 - 2026-10-22 Env var names stay `API_URL` / `API_KEY` (match existing .env and Render), not QUOTES_API_*.
 - 2026-10-22 Pretty logs only when stdout is a terminal, so Render gets JSON without needing NODE_ENV=production (which would make `npm ci` skip the dev dependencies the build needs).
@@ -77,6 +82,9 @@
 - 2026-10-29 Clock times are whole seconds: deadlines snapped to the second, sweeps round "now" — otherwise a mid-second Start showed 6 first and timer jitter skipped/repeated numbers.
 - 2026-11-03 Room join/leave are **local** (`io.local.in(socketId)`): every join/leave is done by the server the socket is connected to; broadcasts still cross servers through the adapter.
 
+- 2026-11-04 Load balancing is **not sticky** (`least_conn`): the server accepts WebSocket only, so a connection never needs to return to the same instance; `ip_hash` would put a one-IP load test on one server.
+- 2026-11-04 Load tool: own TypeScript bots (socket.io-client) instead of Artillery — 8 coordinated players per room and exact word→broadcast timing; no new dependency.
+
 ## Decisions (Phase 1 design)
 - `Notifier` port (gameChanged/timer/raceOver/playerFinished/chat*/reaction) instead of a generic Broadcaster — services never see Socket.IO event names.
 - `RoomMembership` port: services add a socket to the game room *before* broadcasting (creator must receive the first `updateGame`). In Phase 5 this maps to `io.in(socketId).socketsJoin(room)`, which works across instances.
@@ -88,8 +96,9 @@
 - Create with an empty nickname now replies `notCorrectGame "Please enter your name"` (v1 silently ignored it).
 
 ## Next steps
-1. Merge `phase-5-multi-instance` (server) and `phase-5-client` (app) into master; GitHub showcase (description, topics, pin).
-2. Phase 6 — Nginx in front of app1..app3 (one address for players, WebSocket upgrade) + Artillery load test; record numbers in Measurements.
+1. Merge `phase-6-nginx-load` (server) and `phase-6-docs` (app) into master.
+2. Phase 7 — Kafka + stats-worker (post-race events only; NFR-4's "kill the worker" experiment).
+3. Phase 9 (end): host the server (Render + Render Key Value), set `SERVER_URL` in Codemagic, deploy the web build to Vercel, add a "Play it live" link.
 
 ## Known issues / TODO
 - ~~2026-10-26 Restarting the app mid-countdown or mid-race froze that room~~ — fixed in Phase 5.4 (race clock in Redis).
@@ -107,10 +116,18 @@
 
 ## Useful commands
 - Server: `cd server && npm run dev` · `npm test` · `npm run test:coverage`
-- Docker: `cd server && docker compose up --build -d` · `docker compose ps` · `docker compose logs -f app1 app2` · `docker compose stop app1` (kill test) · `docker compose down`
+- Docker: `cd server && docker compose up --build -d` (game on http://localhost:8080) · `docker compose ps` · `docker compose logs -f app1 app2 app3` · `docker compose stop app2` (kill test) · `docker compose down`
+- Load test: `ulimit -n 8192 && npm run load -- --rooms 125` (server folder, stack running)
 - Client: `flutter test` · `flutter run -d chrome --dart-define=SERVER_URL=http://localhost:3000`
 
 ## Measurements
+- 2026-11-06 **Load test** (`server/docs/load-test.md`), i7-1165G7 4c/8t, 15 GiB, everything on one laptop; bots at 60 WPM, long quote, 60 s races:
+  - 1,000 players · 3 servers: 125/125 rooms · word→broadcast p50 3 · p95 **17** · p99 34 ms · servers 55–80 % CPU, ~100–128 MiB each
+  - 1,000 players · 1 server: 125/125 · p95 16 ms · server at 100–124 % CPU (its ceiling)
+  - 2,000 players · 2 servers: 250/250 · p50 19 · p95 **77** · p99 106 ms
+  - 2,000 players · 1 server: **239/250** · p50 261 · p95 527 · p99 860 ms (overloaded)
+  - Kill app2 mid-race (1,000 players, 3 servers): 333/333 dropped players back, rejoin p95 **0.96 s**, 125/125 races finished
+  - Redis never the bottleneck: < 50 % CPU, < 20 MiB
 - 2026-10-29 Redis store latency, `npm run bench:redis`, 1000 rounds, local Docker Redis (Ubuntu laptop). Store calls only, not the browser round trip:
   - join (get + addPlayer + get): p50 0.43 ms · p95 0.69 ms · p99 1.08 ms
   - word (get + update + get): p50 0.39 ms · p95 0.64 ms · p99 0.97 ms
