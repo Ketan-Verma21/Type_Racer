@@ -54,6 +54,7 @@ Create a room, share the code, and race your friends to type the same quote the 
 - **Server-authoritative** – the app only sends typed words; the server checks every word, runs the clock and computes WPM, so scores can't be faked.
 - **Runs on several servers at once** – two game servers share one Redis: players on different servers race in the same room, and **a race keeps going even if the server that started it crashes**.
 - **Redis as the datastore** – Lua scripts make "take the last seat" atomic, rooms clean themselves up after 2 hours, and there's a leaderboard and match history.
+- **Load-tested** – 1,000 bots racing at once through Nginx on 3 servers: a typed word reaches everyone in **17 ms** (p95). Killing a server mid-race: all its players were back in under a second and every race finished ([report](https://github.com/Ketan-Verma21/TypeRacerServer/blob/master/docs/load-test.md)).
 - **Tested** – 280+ server tests, including contract tests that every storage adapter (in-memory and Redis) must pass, and end-to-end tests with real sockets and two real servers.
 
 ## 🧱 Tech Stack
@@ -125,15 +126,15 @@ cp server/.env.example server/.env   # fill in API_KEY if you have one
 ### 2. Start the server
 
 #### Run with Docker (recommended)
-One command starts two game servers (`app1` on port 3000, `app2` on 3001) and Redis:
+One command starts **Nginx** on port **8080** in front of three game servers (`app1`, `app2`, `app3`) and Redis:
 ```bash
 cd server
 docker compose up --build -d   # build the image and start in the background
-docker compose ps              # all three services should say (healthy)
-docker compose logs -f app1 app2   # follow both servers' logs (JSON)
+docker compose ps              # all five services should say (healthy)
+docker compose logs -f app1 app2 app3   # follow the servers' logs (JSON)
 docker compose down            # stop; Redis data stays in the redis-data volume
 ```
-The server listens on `http://localhost:3000` (`/health`, `/health/live`, `/health/ready`).
+The game is on `http://localhost:8080` (`/health`, `/health/live` shows which server answered, `/health/ready`).
 Redis is only reachable from this machine (`127.0.0.1:6379`). Rebuild with `--build` after changing server code.
 
 #### Run with Node (for development)
@@ -154,16 +155,13 @@ REDIS_TEST_URL=redis://localhost:6379/15 npm run bench:redis
 Point the app at your server with `SERVER_URL` (default: the hosted server):
 ```bash
 flutter pub get
-flutter run -d chrome --dart-define=SERVER_URL=http://localhost:3000
+flutter run -d chrome --dart-define=SERVER_URL=http://localhost:8080
 ```
-On a phone, use your computer's LAN IP instead of `localhost`.
+(With `npm run dev` instead of Docker, use `http://localhost:3000`.) On a phone, use your computer's LAN IP instead of `localhost`.
 
 Open the app in two tabs (or devices), create a room in one, and join with the 6-character code in the other.
 
-To see two servers working together, run a second copy against the other server:
-```bash
-flutter run -d chrome --web-port 5002 --dart-define=SERVER_URL=http://localhost:3001
-```
+Two tabs are usually connected to different servers. Try `docker compose stop app2` in the middle of a race: its players reconnect to the other servers and keep racing.
 
 ## 🔌 Socket Events
 
@@ -191,7 +189,7 @@ The full list, with payloads, is in the [server README](https://github.com/Ketan
 - [x] Dockerised server (Docker Compose)
 - [x] Redis as the datastore, leaderboard and match history (server side)
 - [x] Several game servers at once (Socket.IO Redis adapter, race clock in Redis)
-- [ ] Nginx load balancer + load testing
+- [x] Nginx load balancer + load testing (1,000 players, p95 17 ms)
 - [ ] Kafka for post-race events (stats, anti-cheat)
 - [x] CI for the app: Codemagic builds the Flutter web app
 - [ ] CI for the server: GitHub Actions running the tests on every push

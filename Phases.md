@@ -12,7 +12,7 @@
 | 3 | Ubuntu setup + Docker Compose | Ubuntu | Containers | ✅ |
 | 4 | Redis as the datastore (+ leaderboard, history) | Ubuntu | Redis data modelling, atomicity, TTL | ✅ |
 | 5 | Multi-instance: Socket.IO v4, Redis adapter, distributed clock | Ubuntu | Horizontal scaling, pub/sub, distributed claims | ✅ |
-| 6 | Nginx load balancer & load testing | Ubuntu | Reverse proxy, WebSockets, measuring scale | ⬜ |
+| 6 | Nginx load balancer & load testing | Ubuntu | Reverse proxy, WebSockets, measuring scale | ✅ |
 | 7 | Kafka event streaming + stats-worker | Ubuntu | Topics, partitions, consumer groups, replay | ⬜ |
 | 8 | Flutter SOLID refactor & tests | either | Client architecture, widget tests | ⬜ |
 | 9 | CI & production deploy | either | CI/CD, ops | ⬜ |
@@ -131,14 +131,15 @@
 ---
 
 ## Phase 6 — Nginx & load testing (Ubuntu)
-- [ ] `server/nginx/nginx.conf` (`Architecture.md §7`).
-- [ ] Compose: `nginx` + `app1..app3` + `redis`; only Nginx exposed.
-- [ ] Graceful shutdown (`SIGTERM` → stop accepting, close sockets, exit).
-- [ ] Artillery script: 125 rooms × 8 bots racing.
-- [ ] `docs/load-test.md`: concurrent sockets, p95 word→broadcast latency, CPU/RAM per instance, 1 vs 3 instances.
-- [ ] Resilience: `docker compose stop app2` mid-race (NFR-4).
+- [x] `server/nginx/nginx.conf` (`Architecture.md §7`) — `least_conn`, not `ip_hash`.
+- [x] Compose: `nginx` + `app1..app3` + `redis`; only Nginx exposed (:8080).
+- [x] Graceful shutdown (`SIGTERM` → stop accepting, close sockets, exit) — done in Phase 4.4.
+- [x] Load script: 125 rooms × 8 bots racing — own TypeScript bots (`tests/load/`) instead of Artillery.
+- [x] `docs/load-test.md`: concurrent sockets, p95 word→broadcast latency, CPU/RAM per instance, 1 vs 3 instances (+ 2,000 players).
+- [x] Resilience: `docker compose stop app2` mid-race (NFR-4) — 333/333 back in < 1 s.
 
 **Done when:** NFR-2/3/4 measured (pass or documented gap).
+✅ 2026-11-06: all three pass — 1,000 players p95 17 ms; kill test 125/125 races finished.
 **Learn:** reverse proxy vs load balancer, WebSocket upgrade, sticky sessions, edge rate limiting, reading load-test output.
 
 ---
