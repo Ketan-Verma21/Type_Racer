@@ -13,7 +13,7 @@
 | 4 | Redis as the datastore (+ leaderboard, history) | Ubuntu | Redis data modelling, atomicity, TTL | ✅ |
 | 5 | Multi-instance: Socket.IO v4, Redis adapter, distributed clock | Ubuntu | Horizontal scaling, pub/sub, distributed claims | ✅ |
 | 6 | Nginx load balancer & load testing | Ubuntu | Reverse proxy, WebSockets, measuring scale | ✅ |
-| 7 | Kafka event streaming + stats-worker | Ubuntu | Topics, partitions, consumer groups, replay | ⬜ |
+| 7 | Kafka event streaming + stats-worker | Ubuntu | Topics, partitions, consumer groups, replay | ✅ |
 | 8 | Flutter SOLID refactor & tests | either | Client architecture, widget tests | ⬜ |
 | 9 | CI & production deploy | either | CI/CD, ops | ⬜ |
 | 10 | Extras (optional) | either | Product features | ⬜ |
@@ -147,15 +147,16 @@
 ## Phase 7 — Kafka event streaming + stats-worker (Ubuntu)
 **Goal:** move stats processing out of the game servers into a separate consumer, without touching game logic.
 
-- [ ] Compose: `kafka` (`apache/kafka`, KRaft, single broker) + topic creation for `match.started`, `player.finished`, `match.finished` (2 partitions each).
-- [ ] `adapters/kafka/KafkaEventPublisher` (`@confluentinc/kafka-javascript`, idempotent producer, key = gameId).
-- [ ] `src/worker.ts` + `KafkaStatsConsumer` (group `stats-worker`, commit after Redis writes, idempotency marker).
-- [ ] `domain/antiCheat.ts` (FR-17); flagged results skip the leaderboard.
-- [ ] `container.ts`: `EVENTS=kafka` → Kafka publisher on game servers; worker runs `StatsService`.
-- [ ] Tests: `EventPublisher` contract for both publishers; consumer handler unit tests with a fake message source; idempotency (same event twice → counted once); anti-cheat rules.
-- [ ] Experiments, written up in `docs/kafka.md`: stop worker → play → restart → catch-up; 2 workers → partition split; offset reset → leaderboard rebuilt.
+- [x] Compose: `kafka` (`apache/kafka:4.1.0`, KRaft, single broker) + `kafka-init` creating `match.started`, `match.finished` (2 partitions each) — `player.finished` dropped, nothing consumes it.
+- [x] `adapters/kafka/KafkaEventPublisher` (`@confluentinc/kafka-javascript`, idempotent producer, key = gameId).
+- [x] `src/worker.ts` + `KafkaStatsConsumer` (group `stats-worker`, commit after Redis writes, idempotency marker).
+- [x] `domain/antiCheat.ts` (FR-17); flagged results skip the leaderboard.
+- [x] `container.ts`: `EVENTS=kafka` → Kafka publisher on game servers; worker runs `StatsService`.
+- [x] Tests: unit tests for each publisher (not a shared contract); consumer handler with a fake consumer (commit after write, retry, stop, bad message); idempotency (same event twice → counted once); anti-cheat rules.
+- [x] Experiments, written up in `docs/kafka.md`: stop worker → play → restart → catch-up; 2 workers → partition split; offset reset → stats rebuilt; Kafka stopped mid-race.
 
 **Done when:** leaderboard updates arrive via Kafka; killing Kafka or the worker never affects a race.
+✅ 2026-11-09: worker stopped → 20/20 races finished, all counted after restart; Kafka stopped 30 s → 10/10 races finished, p95 7 ms.
 **Learn:** topics, partitions, keys & ordering, consumer groups, offsets/commit, at-least-once + idempotency, decoupling producers from consumers.
 
 ---

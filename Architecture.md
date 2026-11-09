@@ -186,7 +186,7 @@ server/
 |---|---|
 | **S** | Handlers only validate + delegate; `GameService` = use cases; `rules.ts` = pure rules; `RaceClock`/`Sweeper` = time; `SocketIoNotifier` = emitting; `gameDto` = payload shape; `StatsService` = stats. |
 | **O** | New game mode = new `ModeStrategy` + registry entry. New quote source = new `QuoteProvider` in the fallback chain. New event consumer = new Kafka consumer group, publishers untouched. |
-| **L** | Every adapter passes its port's **contract test suite** (`InMemoryGameRepository` and `RedisGameRepository` run the same tests; `InProcessEventPublisher` and `KafkaEventPublisher` satisfy the same `EventPublisher` contract). |
+| **L** | Every adapter passes its port's **contract test suite** (`InMemoryGameRepository` and `RedisGameRepository` run the same tests; `InProcessEventPublisher` and `KafkaEventPublisher` satisfy the same `EventPublisher` contract — as built, each has its own unit tests rather than a shared suite). |
 | **I** | Small ports: `QuoteProvider.getQuote()`, `Clock.now()`, `RateLimiter.allow()`, `RoomMembership.join()`, `EventPublisher.publish()`. Services talk to players through `Notifier` methods in game terms (`gameChanged`, `timer`, `raceOver`), never Socket.IO event names. Handlers only need a 2-method `ConnectionTracker`. |
 | **D** | Services take ports in their constructors; only `container.ts` does `new RedisGameRepository(...)`. Tests pass fakes. |
 
@@ -273,6 +273,7 @@ Handlers never crash the process. Services throw typed `DomainError`s instead of
 2. `EventPublisher.publish(match.finished)` (non-blocking).
 3. **Phase 4–6 (`InProcessEventPublisher`)**: calls `StatsService` directly → `ZADD leaderboard:{mode} GT`, `LPUSH matches:recent` + `LTRIM 499`, `LPUSH game:{code}:history` + `LTRIM 19`.
 4. **Phase 7+ (`KafkaEventPublisher`)**: produce to `match.finished` (key = gameId) → `stats-worker` (consumer group `stats-worker`) runs the same `StatsService` + anti-cheat; offsets committed after the Redis writes succeed. Writes are idempotent (`SET stats:done:{gameId}:{round} NX`) so replays don't double-count.
+   > **As built (Phase 7):** the marker is per event — `SET stats:done:{eventId} NX EX 86400` — claimed before the writes and released if they fail. `match.started` goes through Kafka too (match counts).
 
 ---
 
@@ -297,7 +298,8 @@ As built in Phase 4 (✅) — later rows are marked with their phase.
 | `games:clock` | sorted set | code → next deadline (ms): end of countdown or of race | — (Phase 5 ✅) |
 | `presence:grace` | sorted set | `{code}:{pid}` → removal time | — (Phase 5 ✅) |
 | `tick:{code}:{deadline}:{n}` | string | per-second tick claim | 5 s (Phase 5 ✅) |
-| `stats:done:{gameId}:{round}` | string | idempotency marker for the worker | 1 day (Phase 7) |
+| `stats:done:{eventId}` | string | idempotency marker: this event was applied | 1 day (Phase 7 ✅) |
+| `stats:matches` | hash | mode → matches started (`HINCRBY`) | — (Phase 7 ✅) |
 | Socket.IO adapter | pub/sub | `@socket.io/redis-adapter` 8.3.0, own pub + sub connections | — (Phase 5 ✅) |
 
 All keys are built by `adapters/redis/keys.ts` — never inline strings.
@@ -337,6 +339,8 @@ Only immutable data: quote words per `{code}:{round}` (LRU, 500 entries).
 - Producer: `acks=all`, idempotent producer on; publish failures logged, never thrown to gameplay.
 - Consumer: group `stats-worker`, manual commit after successful Redis writes, idempotency marker per `{gameId}:{round}`.
 - Learning experiments: stop the worker, play races, restart → it catches up; run 2 workers → partitions split between them; reset offsets → replay rebuilds the leaderboard.
+
+> **As built (Phase 7):** **2 topics** — `match.started`, `match.finished` (no `player.finished`: nothing needs it yet), 2 partitions each, created by a one-shot `kafka-init` service (auto-create off). Broker `apache/kafka:4.1.0` KRaft: containers use `kafka:9092`, the host `localhost:9094`. Client `@confluentinc/kafka-javascript` 1.11.0 (KafkaJS-style API). Producer: idempotent, `acks=all`, fire-and-forget (`publish()` never waits or throws), connects in the background (`infra/keepTrying.ts`). Consumer (`src/worker.ts`, `adapters/kafka/KafkaStatsConsumer.ts`): autoCommit off, commits offset + 1 after `StatsService` succeeds; Redis down → retry the same event with backoff (partition waits, order kept); malformed message (zod `decodeEvent`) → logged and skipped. Idempotency per `eventId`. Results: `server/docs/kafka.md` — worker stopped → 20/20 races, all counted after restart; 2 workers → 2 partitions each; stats wiped → match count rebuilt exactly; Kafka stopped 30 s → 10/10 races, p95 7 ms.
 
 ---
 
