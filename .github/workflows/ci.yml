@@ -1,0 +1,33 @@
+# App CI (Phase 9): analyze + tests on every push and pull request.
+# (Codemagic still builds the web app; this checks the code.)
+name: CI
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Analyze and test
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: 3.47.7 # same as the dev machine (Memory.md), so analyze sees the same lints
+          cache: true
+
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test --coverage
+
+      - name: Coverage of domain/ + models (must stay >= 80 %)
+        run: |
+          awk -F'[:,]' '/^SF:/{f=$2} /^LH:/{if(f~/lib\/(domain|data\/models)\//){h+=$2}} /^LF:/{if(f~/lib\/(domain|data\/models)\//){t+=$2}} END{p=100*h/t; printf "domain + models coverage: %.1f%% (%d/%d lines)\n",p,h,t; exit (p<80)}' coverage/lcov.info

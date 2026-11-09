@@ -3,7 +3,7 @@
 > Progress log for AI assistants. Read after `Rules.md`, before coding. Update at the end of every session.
 
 ## Current status
-- Phase: 8 — Flutter refactor + responsive web layout (✅ done on app branch `phase-8-flutter`; merge next). Phases 0–7 ✅ merged.
+- Phase: 9 — CI & deploy (9.1 GitHub Actions on branch `phase-9-ci` in both repos). Phases 0–8 ✅ merged.
 - Machine: **Ubuntu 22.04** (zsh; Node 20.20.2 via nvm 0.40.3, npm 11.21.1; Docker 29.1.3 from Ubuntu's `docker.io` + `docker-compose-v2`; Flutter 3.47.7 (snap, Dart 3.13.5); Chrome 156). Repos at `~/Code/Project/type_racer` (+ `server/`).
 - Last session: 2026-11-09 — Phase 7 merged; Phase 8: typed models, `GameRepository` + `GameController`, game screen split into views, leaderboard, responsive layout (FR-19), 90+ Flutter tests.
 
@@ -116,7 +116,7 @@
 - Create with an empty nickname now replies `notCorrectGame "Please enter your name"` (v1 silently ignored it).
 
 ## Next steps
-1. Merge `phase-8-flutter` into master (app).
+1. 9.1 CI: push `phase-9-ci` in both repos, check the Actions runs are green, merge.
 2. Phase 9: server CI (GitHub Actions), host the server (Render + Render Key Value), set `SERVER_URL` in Codemagic, deploy the web build to Vercel, add a "Play it live" link.
 
 ## Known issues / TODO
@@ -146,6 +146,7 @@
 - Client: `flutter analyze && flutter test` · coverage: `flutter test --coverage` (lcov in `coverage/`) · `flutter run -d chrome --dart-define=SERVER_URL=http://localhost:8080`
 
 ## Measurements
+- 2026-11-09 **Flutter tests:** 94 passing; `domain/` + `data/models/` line coverage **100 %** (139/139).
 - 2026-11-09 **Kafka experiments** (`server/docs/kafka.md`), same laptop, bots at 60 WPM:
   - Worker stopped, 20 races: 20/20 finished; 40 events waited (lag 9 + 11 per topic); restart → caught up in 20 s (mostly container start + group join); match count 22 → 42
   - `--scale stats-worker=2`: each worker got 2 of the 4 partitions

@@ -4,8 +4,9 @@
 
 **A real-time multiplayer typing race with game modes, live stats, spectators, chat and a neon-arcade UI.**
 
-Built with **Flutter** · **TypeScript** · **Socket.IO** · **Redis** · **Docker**
+Built with **Flutter** · **TypeScript** · **Socket.IO** · **Redis** · **Kafka** · **Nginx** · **Docker**
 
+[![CI](https://github.com/Ketan-Verma21/Type_Racer/actions/workflows/ci.yml/badge.svg)](https://github.com/Ketan-Verma21/Type_Racer/actions/workflows/ci.yml)
 [![Codemagic build status](https://api.codemagic.io/apps/6abe03331a2d91e04c85b4ea/6abe03331a2d91e04c85b4e9/status_badge.svg)](https://codemagic.io/apps/6abe03331a2d91e04c85b4ea/6abe03331a2d91e04c85b4e9/latest_build)
 
 <a href="https://buymeacoffee.com/vrm_ketan" target="_blank">
@@ -205,7 +206,7 @@ The full list, with payloads, is in the [server README](https://github.com/Ketan
 - [x] Nginx load balancer + load testing (1,000 players, p95 17 ms)
 - [x] Kafka for post-race events: a separate stats worker, replayable stats, anti-cheat flags
 - [x] CI for the app: Codemagic builds the Flutter web app
-- [ ] CI for the server: GitHub Actions running the tests on every push
+- [x] CI with GitHub Actions: server (format, types, lint, tests on real Redis, Docker build) and app (analyze, tests, coverage ≥ 80 %)
 - [x] Leaderboard in the app + responsive web layout (phone, tablet, desktop)
 - [x] App refactor: typed models, a repository interface, state with no socket code, 90+ tests
 - [ ] Login and player profiles

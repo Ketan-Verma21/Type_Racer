@@ -174,14 +174,14 @@
 - [x] `withOpacity` → `withValues(alpha:)` if the SDK supports it.
 
 **Done when:** `flutter test` green, ≥ 80 % on `domain/` + models; app looks the same.
-✅ 2026-11-09: 90+ tests green, analyze clean; app looks the same on phones and now fills the window on desktop (FR-19).
+✅ 2026-11-09: 94 tests green, analyze clean, `domain/` + models coverage **100 %** (139/139 lines); app looks the same on phones and now fills the window on desktop (FR-19).
 
 ---
 
 ## Phase 9 — CI & production deploy
-- [ ] GitHub Actions — server: `npm ci`, `lint`, `typecheck`, `test:coverage` (Redis service container); client: `flutter analyze`, `flutter test`.
+- [x] GitHub Actions — server: `npm ci`, `format:check`, `typecheck`, `lint`, `test:coverage`, `test:redis` (Redis service container), `build`, Docker build; client: `flutter analyze`, `flutter test --coverage`, coverage gate ≥ 80 % on `domain/` + models.
 - [ ] Production: Render web service (`STORE=redis`, `EVENTS=inprocess`) + Render Key Value (free); remove the old MongoDB env var; optional Aiven free Kafka + worker.
-- [ ] Firebase web deploy with `--dart-define=SERVER_URL=<render url>`.
+- [ ] Web deploy (Vercel, from the Codemagic build; Firebase Hosting removed in Phase 8) with `--dart-define=SERVER_URL=<render url>`.
 - [ ] README: architecture, Docker, tests, scaling + Kafka results.
 
 ---
