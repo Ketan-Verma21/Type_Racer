@@ -27,7 +27,7 @@ class ReactionBar extends StatelessWidget {
               decoration: BoxDecoration(
                 color: AppColors.surfaceHigh,
                 shape: BoxShape.circle,
-                border: Border.all(color: AppColors.cyan.withOpacity(0.25)),
+                border: Border.all(color: AppColors.cyan.withValues(alpha: 0.25)),
               ),
               child: Text(e, style: const TextStyle(fontSize: 22)),
             ),
@@ -77,9 +77,9 @@ class _ChatPanelState extends State<ChatPanel> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surface.withOpacity(0.85),
+        color: AppColors.surface.withValues(alpha: 0.85),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.cyan.withOpacity(0.3)),
+        border: Border.all(color: AppColors.cyan.withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

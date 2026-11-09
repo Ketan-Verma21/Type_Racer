@@ -50,7 +50,7 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
       return;
     }
     setState(() => showSpinner = true);
-    _socketMethods.CreateGame(name);
+    _socketMethods.createGame(name);
 
     // the server answers with updateGame (-> game screen) or notCorrectGame;
     // if neither arrives, don't spin forever
@@ -100,12 +100,12 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
                   margin: const EdgeInsets.symmetric(horizontal: 20),
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    color: AppColors.surface.withOpacity(0.8),
+                    color: AppColors.surface.withValues(alpha: 0.8),
                     borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: AppColors.cyan.withOpacity(0.35)),
+                    border: Border.all(color: AppColors.cyan.withValues(alpha: 0.35)),
                     boxShadow: [
                       BoxShadow(
-                          color: AppColors.cyan.withOpacity(0.15),
+                          color: AppColors.cyan.withValues(alpha: 0.15),
                           blurRadius: 30),
                     ],
                   ),

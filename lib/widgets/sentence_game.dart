@@ -30,9 +30,9 @@ class SentenceGame extends StatelessWidget {
       padding: const EdgeInsets.all(18),
       constraints: const BoxConstraints(maxWidth: 600),
       decoration: BoxDecoration(
-        color: AppColors.surface.withOpacity(0.85),
+        color: AppColors.surface.withValues(alpha: 0.85),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.cyan.withOpacity(0.3)),
+        border: Border.all(color: AppColors.cyan.withValues(alpha: 0.3)),
       ),
       child: ValueListenableBuilder<String>(
         valueListenable: typed,
@@ -54,7 +54,7 @@ class SentenceGame extends StatelessWidget {
                 style: base.copyWith(
                   color: ok ? AppColors.green : AppColors.red,
                   backgroundColor:
-                      ok ? null : AppColors.red.withOpacity(0.25),
+                      ok ? null : AppColors.red.withValues(alpha: 0.25),
                   fontWeight: FontWeight.w800,
                 ),
               ));
@@ -85,7 +85,7 @@ class SentenceGame extends StatelessWidget {
               text: t.substring(current.length),
               style: base.copyWith(
                 color: AppColors.red,
-                backgroundColor: AppColors.red.withOpacity(0.25),
+                backgroundColor: AppColors.red.withValues(alpha: 0.25),
                 decoration: TextDecoration.lineThrough,
               ),
             ));

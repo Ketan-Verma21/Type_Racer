@@ -50,7 +50,7 @@ class AppTheme {
       ),
       chipTheme: ChipThemeData(
         backgroundColor: AppColors.surfaceHigh,
-        side: BorderSide(color: AppColors.cyan.withOpacity(0.4)),
+        side: BorderSide(color: AppColors.cyan.withValues(alpha: 0.4)),
         shape: const StadiumBorder(),
         labelStyle: body(size: 16, weight: FontWeight.w700),
       ),
@@ -66,7 +66,7 @@ class AppTheme {
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: AppColors.cyan.withOpacity(0.15)),
+          borderSide: BorderSide(color: AppColors.cyan.withValues(alpha: 0.15)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),

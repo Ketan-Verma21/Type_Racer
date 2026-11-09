@@ -268,7 +268,7 @@ class _GameScreenState extends State<GameScreen> {
                   color: AppColors.surfaceHigh,
                   borderRadius: BorderRadius.circular(30),
                   border: Border.all(
-                      color: AppColors.yellow.withOpacity(0.5)),
+                      color: AppColors.yellow.withValues(alpha: 0.5)),
                 ),
                 child: Text(msg.toUpperCase(),
                     style: AppTheme.display(
@@ -304,7 +304,7 @@ class _GameScreenState extends State<GameScreen> {
         key: ValueKey(text),
         style: AppTheme.display(size: size, color: AppColors.cyan, spacing: 2)
             .copyWith(shadows: [
-          Shadow(color: AppColors.cyan.withOpacity(0.8), blurRadius: 18),
+          Shadow(color: AppColors.cyan.withValues(alpha: 0.8), blurRadius: 18),
         ]),
       ),
     );
@@ -370,7 +370,7 @@ class _GameScreenState extends State<GameScreen> {
                         color: AppColors.surfaceHigh,
                         borderRadius: BorderRadius.circular(14),
                         border:
-                        Border.all(color: AppColors.cyan.withOpacity(0.35)),
+                        Border.all(color: AppColors.cyan.withValues(alpha: 0.35)),
                       ),
                       child: Column(
                         children: [
@@ -530,10 +530,10 @@ class _GameScreenState extends State<GameScreen> {
           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           decoration: BoxDecoration(
-            color: (out ? AppColors.red : AppColors.cyan).withOpacity(0.12),
+            color: (out ? AppColors.red : AppColors.cyan).withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
-                color: (out ? AppColors.red : AppColors.cyan).withOpacity(0.5)),
+                color: (out ? AppColors.red : AppColors.cyan).withValues(alpha: 0.5)),
           ),
           child: Text(
             out
@@ -617,7 +617,7 @@ class _GameScreenState extends State<GameScreen> {
     final me = findMe(players);
     if (me == null) {
       // state was reset / reconnecting: draw just the background
-      return Scaffold(body: GameBackground(child: const SizedBox.shrink()));
+      return const Scaffold(body: GameBackground(child: SizedBox.shrink()));
     }
 
     final words = game.gameState['words'] as List;
@@ -703,7 +703,7 @@ class _GameScreenState extends State<GameScreen> {
                   padding: const EdgeInsets.symmetric(
                       horizontal: 20, vertical: 12),
                   decoration: BoxDecoration(
-                    color: AppColors.red.withOpacity(0.92),
+                    color: AppColors.red.withValues(alpha: 0.92),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Text(text,

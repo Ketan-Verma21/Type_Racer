@@ -35,7 +35,7 @@ class SettingsPanel extends StatelessWidget {
       showCheckmark: false,
       selectedColor: AppColors.cyan,
       backgroundColor: AppColors.surfaceHigh,
-      side: BorderSide(color: AppColors.cyan.withOpacity(0.3)),
+      side: BorderSide(color: AppColors.cyan.withValues(alpha: 0.3)),
       onSelected: (_) => onTap(),
     );
   }
@@ -66,9 +66,9 @@ class SettingsPanel extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surface.withOpacity(0.85),
+        color: AppColors.surface.withValues(alpha: 0.85),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.magenta.withOpacity(0.35)),
+        border: Border.all(color: AppColors.magenta.withValues(alpha: 0.35)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

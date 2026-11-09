@@ -32,11 +32,11 @@ class Scoreboard extends StatelessWidget {
         margin: const EdgeInsets.symmetric(horizontal: 16),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppColors.surface.withOpacity(0.85),
+          color: AppColors.surface.withValues(alpha: 0.85),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AppColors.yellow.withOpacity(0.5)),
+          border: Border.all(color: AppColors.yellow.withValues(alpha: 0.5)),
           boxShadow: [
-            BoxShadow(color: AppColors.yellow.withOpacity(0.15), blurRadius: 24),
+            BoxShadow(color: AppColors.yellow.withValues(alpha: 0.15), blurRadius: 24),
           ],
         ),
         child: Column(
@@ -71,14 +71,14 @@ class Scoreboard extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
         color: isWinner
-            ? AppColors.yellow.withOpacity(0.12)
+            ? AppColors.yellow.withValues(alpha: 0.12)
             : AppColors.surfaceHigh,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: mine
               ? AppColors.cyan
               : (isWinner
-                  ? AppColors.yellow.withOpacity(0.6)
+                  ? AppColors.yellow.withValues(alpha: 0.6)
                   : Colors.transparent),
           width: mine ? 2 : 1,
         ),

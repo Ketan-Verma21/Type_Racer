@@ -59,7 +59,7 @@ class _JoinRoomScreenState extends State<JoinRoomScreen> {
       return;
     }
     setState(() => _joining = true);
-    _socketMethods.JoinGame(code, name);
+    _socketMethods.joinGame(code, name);
 
     _timeout?.cancel();
     _timeout = Timer(_joinTimeout, () {
@@ -107,13 +107,13 @@ class _JoinRoomScreenState extends State<JoinRoomScreen> {
                   margin: const EdgeInsets.symmetric(horizontal: 20),
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    color: AppColors.surface.withOpacity(0.8),
+                    color: AppColors.surface.withValues(alpha: 0.8),
                     borderRadius: BorderRadius.circular(24),
                     border:
-                        Border.all(color: AppColors.magenta.withOpacity(0.35)),
+                        Border.all(color: AppColors.magenta.withValues(alpha: 0.35)),
                     boxShadow: [
                       BoxShadow(
-                          color: AppColors.magenta.withOpacity(0.15),
+                          color: AppColors.magenta.withValues(alpha: 0.15),
                           blurRadius: 30),
                     ],
                   ),

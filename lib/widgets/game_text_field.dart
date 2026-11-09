@@ -122,7 +122,7 @@ class _GameTextFieldState extends State<GameTextField>
                     borderRadius: BorderRadius.circular(14),
                     boxShadow: [
                       BoxShadow(
-                        color: border.withOpacity(wrong ? 0.45 : 0.15),
+                        color: border.withValues(alpha: wrong ? 0.45 : 0.15),
                         blurRadius: wrong ? 18 : 10,
                       ),
                     ],
@@ -149,7 +149,7 @@ class _GameTextFieldState extends State<GameTextField>
                         borderSide: BorderSide(
                           color: wrong
                               ? AppColors.red
-                              : AppColors.cyan.withOpacity(0.15),
+                              : AppColors.cyan.withValues(alpha: 0.15),
                           width: wrong ? 2 : 1,
                         ),
                       ),

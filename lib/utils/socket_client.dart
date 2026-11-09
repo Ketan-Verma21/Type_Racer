@@ -1,4 +1,4 @@
-import 'package:socket_io_client/socket_io_client.dart' as IO;
+import 'package:socket_io_client/socket_io_client.dart' as io;
 import 'package:type_racer/utils/player_utils.dart';
 
 /// Server address, chosen at build/run time (no trailing slash):
@@ -11,11 +11,11 @@ const String kServerUrl = String.fromEnvironment(
 
 /// One shared socket connection for the whole app.
 class SocketClient {
-  IO.Socket? socket;
+  io.Socket? socket;
   static SocketClient? _instance;
 
   SocketClient._internal() {
-    socket = IO.io(
+    socket = io.io(
       kServerUrl,
       <String, dynamic>{
         'transports': ['websocket'],

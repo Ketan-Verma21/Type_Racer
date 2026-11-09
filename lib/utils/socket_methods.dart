@@ -10,7 +10,7 @@ import '../providers/client_state_provider.dart';
 
 class SocketMethods {
   final _socketClient = SocketClient.instance.socket!;
-  bool is_playing = false;
+  bool _isPlaying = false;
 
   // Run `action` as soon as the socket is connected (right away if it is
   // already). Covers the case where the server just woke up and the socket
@@ -25,14 +25,14 @@ class SocketMethods {
   }
 
   // ───────────── emits ─────────────
-  CreateGame(String nickname) {
+  createGame(String nickname) {
     if (nickname.isNotEmpty) {
       _whenConnected(
               () => _socketClient.emit('create-game', {'nickname': nickname}));
     }
   }
 
-  JoinGame(String gameId, String nickname) {
+  joinGame(String gameId, String nickname) {
     if (nickname.isNotEmpty && gameId.isNotEmpty) {
       _whenConnected(() => _socketClient
           .emit('join-game', {'nickname': nickname, 'gameId': gameId}));
@@ -95,10 +95,10 @@ class SocketMethods {
         words: data['words'],
         settings: data['settings'],
       );
-      if (data['_id'].isNotEmpty && !is_playing) {
+      if (data['_id'].isNotEmpty && !_isPlaying) {
         onEnterGame?.call();
         navigator.pushNamed('/game-screen');
-        is_playing = true;
+        _isPlaying = true;
       }
     });
   }
@@ -225,7 +225,7 @@ class SocketMethods {
     _socketClient.off('chat-history');
     _socketClient.off('reaction');
     _socketClient.off('error-message');
-    is_playing = false;
+    _isPlaying = false;
     myPlayerId = null; // the next game gives us a new id
   }
 
