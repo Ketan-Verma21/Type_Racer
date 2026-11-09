@@ -195,22 +195,6 @@ Two tabs are usually connected to different servers. Try `docker compose stop ap
 
 The full list, with payloads, is in the [server README](https://github.com/Ketan-Verma21/TypeRacerServer#-socket-events).
 
-## 🗺️ Roadmap
-
-- [x] TypeScript server with SOLID design, input validation and structured logs
-- [x] Unit, contract and end-to-end tests
-- [x] Dockerised server (Docker Compose)
-- [x] Redis as the datastore, leaderboard and match history (server side)
-- [x] Several game servers at once (Socket.IO Redis adapter, race clock in Redis)
-- [x] Nginx load balancer + load testing (1,000 players, p95 17 ms)
-- [x] Kafka for post-race events: a separate stats worker, replayable stats, anti-cheat flags
-- [x] CI for the app: Codemagic builds the Flutter web app
-- [ ] CI for the server: GitHub Actions running the tests on every push
-- [x] Leaderboard in the app + responsive web layout (phone, tablet, desktop)
-- [x] App refactor: typed models, a repository interface, state with no socket code, 90+ tests
-- [ ] Login and player profiles
-- [ ] Power-ups
-
 ## 🤝 Contributing
 
 Contributions are welcome!
