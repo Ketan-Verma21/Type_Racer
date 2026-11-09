@@ -11,7 +11,7 @@ import 'package:type_racer/providers/client_state_provider.dart';
 import 'package:type_racer/providers/game_state_provider.dart';
 import 'package:type_racer/theme/app_colors.dart';
 import 'package:type_racer/theme/app_theme.dart';
-import 'package:type_racer/utils/game_modes.dart';
+import 'package:type_racer/domain/game_modes.dart';
 import 'package:type_racer/utils/player_utils.dart';
 import 'package:type_racer/utils/socket_methods.dart';
 import 'package:type_racer/utils/sound_service.dart';

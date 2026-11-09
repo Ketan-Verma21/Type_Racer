@@ -1,3 +1,5 @@
+// The three game modes and the lobby choices (must match the server's
+// src/domain/modes/ and src/config/constants.ts).
 class GameMode {
   final String id;
   final String name;

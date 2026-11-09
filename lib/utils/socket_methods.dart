@@ -195,7 +195,7 @@ class SocketMethods {
 
     _socketClient.off('reaction');
     _socketClient.on('reaction', (data) {
-      chat.addReaction(ReactionEvent.fromJson(data));
+      chat.addReaction(Reaction.fromJson(data));
     });
   }
 

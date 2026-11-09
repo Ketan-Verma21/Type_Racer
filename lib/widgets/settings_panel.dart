@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
-import '../utils/game_modes.dart';
+import 'package:type_racer/domain/game_modes.dart';
 
 /// Lobby settings. The host gets chips to change them; everyone else sees a
 /// read-only summary.

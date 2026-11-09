@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:type_racer/utils/room_code.dart';
+import 'package:type_racer/domain/room_code.dart';
+import 'package:type_racer/widgets/room_code_input_formatter.dart';
 
 void main() {
   group('room codes', () {
