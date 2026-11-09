@@ -10,6 +10,7 @@ class StatsBar extends StatelessWidget {
   final int done;
   final int total;
   final GameMode mode;
+  final double maxWidth;
 
   const StatsBar({
     Key? key,
@@ -18,6 +19,7 @@ class StatsBar extends StatelessWidget {
     required this.done,
     required this.total,
     required this.mode,
+    this.maxWidth = 600,
   }) : super(key: key);
 
   Widget _tile(String label, String value, Color color) {
@@ -49,7 +51,7 @@ class StatsBar extends StatelessWidget {
         ? AppColors.green
         : (accuracy >= 0.85 ? AppColors.yellow : AppColors.red);
     return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 600),
+      constraints: BoxConstraints(maxWidth: maxWidth),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12),
         child: Row(

@@ -6,6 +6,7 @@ import 'package:type_racer/screens/create_room_screen.dart';
 import 'package:type_racer/screens/game/game_screen.dart';
 import 'package:type_racer/screens/home_screen.dart';
 import 'package:type_racer/screens/join_room_screen.dart';
+import 'package:type_racer/screens/leaderboard_screen.dart';
 import 'package:type_racer/state/chat_provider.dart';
 import 'package:type_racer/state/game_controller.dart';
 import 'package:type_racer/state/leaderboard_controller.dart';
@@ -26,7 +27,8 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (c) => GameController(c.read<GameRepository>())),
         ChangeNotifierProvider(create: (c) => ChatProvider(c.read<GameRepository>())),
         ChangeNotifierProvider(create: (c) => LeaderboardController(c.read<GameRepository>())),
-        ChangeNotifierProvider(create: (_) => ServerStatusProvider()),
+        // wake the (possibly sleeping) server right away, not only on app resume
+        ChangeNotifierProvider(create: (_) => ServerStatusProvider()..wake(), lazy: false),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
@@ -38,6 +40,7 @@ class MyApp extends StatelessWidget {
           '/create-room': (context) => const CreateRoomScreen(),
           '/join-room': (context) => const JoinRoomScreen(),
           '/game-screen': (context) => const GameScreen(),
+          '/leaderboard': (context) => const LeaderboardScreen(),
         },
       ),
     );

@@ -43,11 +43,16 @@ class ChatPanel extends StatefulWidget {
   final void Function(String text) onSend;
   final void Function(String emoji) onReact;
 
+  /// true: the message list takes all the height the panel gets (wide
+  /// layouts, inside a bounded column). false: a fixed 130 px list.
+  final bool expand;
+
   const ChatPanel({
     Key? key,
     required this.myId,
     required this.onSend,
     required this.onReact,
+    this.expand = false,
   }) : super(key: key);
 
   @override
@@ -72,6 +77,9 @@ class _ChatPanelState extends State<ChatPanel> {
     _controller.clear();
   }
 
+  Widget _messageBox(Widget list) =>
+      widget.expand ? Expanded(child: list) : SizedBox(height: 130, child: list);
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -82,6 +90,7 @@ class _ChatPanelState extends State<ChatPanel> {
         border: Border.all(color: AppColors.cyan.withValues(alpha: 0.3)),
       ),
       child: Column(
+        mainAxisSize: widget.expand ? MainAxisSize.max : MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
@@ -93,9 +102,8 @@ class _ChatPanelState extends State<ChatPanel> {
             ],
           ),
           const SizedBox(height: 10),
-          SizedBox(
-            height: 130,
-            child: Consumer<ChatProvider>(
+          _messageBox(
+            Consumer<ChatProvider>(
               builder: (context, chat, _) {
                 WidgetsBinding.instance.addPostFrameCallback((_) {
                   if (_scroll.hasClients) {

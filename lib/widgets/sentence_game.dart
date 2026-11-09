@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:type_racer/theme/app_colors.dart';
+import 'package:type_racer/theme/app_theme.dart';
 import 'package:type_racer/state/game_controller.dart';
 
 /// The sentence card with live, per-letter feedback.
 /// `typed` is the text currently in the input box (shared with GameTextField).
 class SentenceGame extends StatelessWidget {
   final ValueNotifier<String> typed;
-  const SentenceGame({Key? key, required this.typed}) : super(key: key);
+  final double maxWidth;
+  final double fontSize;
+  const SentenceGame({Key? key, required this.typed, this.maxWidth = 600, this.fontSize = 24})
+      : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -22,12 +25,12 @@ class SentenceGame extends StatelessWidget {
     final current = words[i];
     final done = words.sublist(0, i).join(' ');
     final remaining = words.sublist(i + 1).join(' ');
-    final base = GoogleFonts.jetBrainsMono(fontSize: 24, height: 1.6);
+    final base = AppTheme.mono(size: fontSize, height: 1.6);
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(18),
-      constraints: const BoxConstraints(maxWidth: 600),
+      constraints: BoxConstraints(maxWidth: maxWidth),
       decoration: BoxDecoration(
         color: AppColors.surface.withValues(alpha: 0.85),
         borderRadius: BorderRadius.circular(18),

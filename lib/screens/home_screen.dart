@@ -5,7 +5,9 @@ import 'package:type_racer/state/server_status_provider.dart';
 import 'package:type_racer/theme/app_colors.dart';
 import 'package:type_racer/theme/app_theme.dart';
 import 'package:type_racer/widgets/custom_button.dart';
+import 'package:type_racer/ui/layout/breakpoints.dart';
 import 'package:type_racer/widgets/game_background.dart';
+import 'package:type_racer/widgets/leaderboard_panel.dart';
 import 'package:type_racer/widgets/server_status_banner.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -50,73 +52,90 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final size = MediaQuery.of(context).size;
     final ready = context.watch<ServerStatusProvider>().isReady;
 
+    final screen = ScreenSize.of(context);
+
+    final hero = Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // bobbing car
+        Text('🏎️', style: TextStyle(fontSize: screen.isCompact ? 72 : 96))
+            .animate(onPlay: (c) => c.repeat(reverse: true))
+            .moveY(begin: -8, end: 8, duration: 900.ms, curve: Curves.easeInOut),
+        const SizedBox(height: 12),
+        ShaderMask(
+          shaderCallback: (r) => AppColors.titleGradient.createShader(r),
+          child: Text(
+            'TYPE RACER',
+            style: AppTheme.display(size: screen.isCompact ? 40 : 56, color: Colors.white, spacing: 4),
+          ),
+        ).animate().fadeIn(duration: 600.ms).slideY(begin: -0.3, curve: Curves.easeOutBack),
+        const SizedBox(height: 10),
+        Text(
+          'Create or join a room to race!',
+          textAlign: TextAlign.center,
+          style: AppTheme.body(size: 20, color: AppColors.textMuted),
+        ).animate().fadeIn(delay: 300.ms, duration: 600.ms),
+        SizedBox(height: size.height * 0.05),
+        const ServerStatusBanner(),
+        SizedBox(height: size.height * 0.03),
+        Wrap(
+          alignment: WrapAlignment.center,
+          spacing: 20,
+          runSpacing: 20,
+          children: [
+            CustomButton(
+              text: 'Create',
+              ishome: true,
+              onTap: ready ? () => _go('/create-room') : null,
+            ),
+            CustomButton(
+              text: 'Join',
+              ishome: true,
+              secondary: true,
+              onTap: ready ? () => _go('/join-room') : null,
+            ),
+          ],
+        ).animate().fadeIn(delay: 500.ms, duration: 500.ms).slideY(begin: 0.3, curve: Curves.easeOut),
+        if (screen.isCompact) ...[
+          const SizedBox(height: 16),
+          TextButton.icon(
+            onPressed: () => Navigator.of(context).pushNamed('/leaderboard'),
+            icon: const Icon(Icons.emoji_events_rounded, color: AppColors.yellow),
+            label: Text('Leaderboard', style: AppTheme.body(size: 16, weight: FontWeight.w700)),
+          ),
+        ],
+      ],
+    );
+
     return Scaffold(
       body: GameBackground(
         child: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 600),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    // bobbing car
-                    const Text('🏎️', style: TextStyle(fontSize: 72))
-                        .animate(onPlay: (c) => c.repeat(reverse: true))
-                        .moveY(
-                      begin: -8,
-                      end: 8,
-                      duration: 900.ms,
-                      curve: Curves.easeInOut,
-                    ),
-                    const SizedBox(height: 12),
-                    ShaderMask(
-                      shaderCallback: (r) =>
-                          AppColors.titleGradient.createShader(r),
-                      child: Text(
-                        'TYPE RACER',
-                        style: AppTheme.display(
-                            size: 40, color: Colors.white, spacing: 4),
+          child: screen.isCompact
+              ? Center(
+                  child: SingleChildScrollView(
+                    child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 600), child: hero),
+                  ),
+                )
+              // wide: hero on the left, top racers on the right
+              : Center(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(maxWidth: screen.maxContentWidth),
+                    child: Padding(
+                      padding: EdgeInsets.all(screen.gutter),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Expanded(child: Center(child: SingleChildScrollView(child: hero))),
+                          SizedBox(width: screen.gutter),
+                          SizedBox(
+                            width: screen == ScreenSize.expanded ? 440 : 340,
+                            child: const LeaderboardPanel(fill: true),
+                          ),
+                        ],
                       ),
-                    )
-                        .animate()
-                        .fadeIn(duration: 600.ms)
-                        .slideY(begin: -0.3, curve: Curves.easeOutBack),
-                    const SizedBox(height: 10),
-                    Text(
-                      'Create or join a room to race!',
-                      style: AppTheme.body(
-                          size: 20, color: AppColors.textMuted),
-                    ).animate().fadeIn(delay: 300.ms, duration: 600.ms),
-                    SizedBox(height: size.height * 0.05),
-                    const ServerStatusBanner(),
-                    SizedBox(height: size.height * 0.03),
-                    Wrap(
-                      alignment: WrapAlignment.center,
-                      spacing: 20,
-                      runSpacing: 20,
-                      children: [
-                        CustomButton(
-                          text: 'Create',
-                          ishome: true,
-                          onTap: ready ? () => _go('/create-room') : null,
-                        ),
-                        CustomButton(
-                          text: 'Join',
-                          ishome: true,
-                          secondary: true,
-                          onTap: ready ? () => _go('/join-room') : null,
-                        ),
-                      ],
-                    )
-                        .animate()
-                        .fadeIn(delay: 500.ms, duration: 500.ms)
-                        .slideY(begin: 0.3, curve: Curves.easeOut),
-                  ],
+                    ),
+                  ),
                 ),
-              ),
-            ),
-          ),
         ),
       ),
     );

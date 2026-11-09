@@ -2,9 +2,9 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:type_racer/theme/app_colors.dart';
+import 'package:type_racer/theme/app_theme.dart';
 import 'package:type_racer/state/game_controller.dart';
 import 'package:type_racer/state/typing_stats.dart';
 import 'package:type_racer/utils/sound_service.dart';
@@ -15,7 +15,8 @@ import 'package:type_racer/utils/sound_service.dart';
 class GameTextField extends StatefulWidget {
   final ValueNotifier<String> typed;
   final TypingStats stats;
-  const GameTextField({Key? key, required this.typed, required this.stats})
+  final double maxWidth;
+  const GameTextField({Key? key, required this.typed, required this.stats, this.maxWidth = 600})
       : super(key: key);
 
   @override
@@ -94,7 +95,7 @@ class _GameTextFieldState extends State<GameTextField>
     return Center(
       heightFactor: 1,
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 600),
+        constraints: BoxConstraints(maxWidth: widget.maxWidth),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: ValueListenableBuilder<String>(
@@ -129,8 +130,8 @@ class _GameTextFieldState extends State<GameTextField>
                     controller: _wordsController,
                     onChanged: (val) => handleTextChange(val, gameData),
                     cursorColor: border,
-                    style: GoogleFonts.jetBrainsMono(
-                      fontSize: 20,
+                    style: AppTheme.mono(
+                      size: 20,
                       color: wrong ? AppColors.red : AppColors.textPrimary,
                     ),
                     decoration: InputDecoration(

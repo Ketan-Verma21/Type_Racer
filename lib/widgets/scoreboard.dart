@@ -11,7 +11,8 @@ import 'package:type_racer/state/game_controller.dart';
 /// ("waiting for others"); once it is over it crowns the winner.
 class Scoreboard extends StatelessWidget {
   final String myId;
-  const Scoreboard({Key? key, required this.myId}) : super(key: key);
+  final double maxWidth;
+  const Scoreboard({Key? key, required this.myId, this.maxWidth = 600}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -28,7 +29,7 @@ class Scoreboard extends StatelessWidget {
         : (iWon ? 'YOU WON! 🎉' : '${winner?.nickname} WINS!');
 
     return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 600),
+      constraints: BoxConstraints(maxWidth: maxWidth),
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 16),
         padding: const EdgeInsets.all(16),

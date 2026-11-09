@@ -82,9 +82,12 @@ class CountdownText extends StatelessWidget {
   }
 }
 
-/// One lane per racer, with live WPM.
+/// One lane per racer, with live WPM. With [columns] > 1 the lanes are laid
+/// out in a grid (wide screens, many racers).
 class RaceLanes extends StatelessWidget {
-  const RaceLanes({super.key});
+  final int columns;
+  final double maxWidth;
+  const RaceLanes({super.key, this.columns = 1, this.maxWidth = 600});
 
   @override
   Widget build(BuildContext context) {
@@ -92,24 +95,33 @@ class RaceLanes extends StatelessWidget {
     final racers = game.game.racers;
     final wordCount = game.game.words.length;
     final myId = game.me?.id;
+
+    Widget lane(int index) {
+      final Player p = racers[index];
+      return RaceLane(
+        name: p.nickname,
+        progress: p.progress(wordCount),
+        color: AppColors.laneColors[index % AppColors.laneColors.length],
+        wpm: game.wpmOf(p),
+        isMe: p.id == myId,
+        isLeader: p.isHost,
+        isEliminated: p.isEliminated,
+      );
+    }
+
     return Center(
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 600),
-        child: ListView.builder(
-          itemCount: racers.length,
-          itemBuilder: (context, index) {
-            final Player p = racers[index];
-            return RaceLane(
-              name: p.nickname,
-              progress: p.progress(wordCount),
-              color: AppColors.laneColors[index % AppColors.laneColors.length],
-              wpm: game.wpmOf(p),
-              isMe: p.id == myId,
-              isLeader: p.isHost,
-              isEliminated: p.isEliminated,
-            );
-          },
-        ),
+        constraints: BoxConstraints(maxWidth: maxWidth),
+        child: columns <= 1 || racers.length < 3
+            ? ListView.builder(itemCount: racers.length, itemBuilder: (_, i) => lane(i))
+            : GridView.builder(
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: columns,
+                  mainAxisExtent: 124, // one lane (≈110 px) plus a little room
+                ),
+                itemCount: racers.length,
+                itemBuilder: (_, i) => lane(i),
+              ),
       ),
     );
   }

@@ -167,7 +167,8 @@
 - [ ] Providers depend on `GameRepository`.
 - [ ] Split `game_screen.dart` into `views/lobby|race|watch|results`.
 - [ ] Pure logic → `domain/`.
-- [ ] Leaderboard screen (FR-15).
+- [ ] Leaderboard screen (FR-15) — a panel on Home on wide screens, its own screen on phones.
+- [ ] **Responsive web layout (FR-19, added 2026-11-09):** `ui/layout/breakpoints.dart` (phone < 700 · tablet 700–1100 · desktop ≥ 1100); multi-column lobby / race / watch / results / home; widget tests at 400, 900, 1440 px.
 - [ ] Remove unused packages after confirming: neopop, firebase_core, feedback_sentry, shorebird_code_push.
 - [ ] Widget tests: RaceLane, Scoreboard, SettingsPanel, StatsBar, game views.
 - [ ] `withOpacity` → `withValues(alpha:)` if the SDK supports it.
