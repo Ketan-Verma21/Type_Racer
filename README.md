@@ -55,7 +55,8 @@ Create a room, share the code, and race your friends to type the same quote the 
 - **Runs on several servers at once** – two game servers share one Redis: players on different servers race in the same room, and **a race keeps going even if the server that started it crashes**.
 - **Redis as the datastore** – Lua scripts make "take the last seat" atomic, rooms clean themselves up after 2 hours, and there's a leaderboard and match history.
 - **Load-tested** – 1,000 bots racing at once through Nginx on 3 servers: a typed word reaches everyone in **17 ms** (p95). Killing a server mid-race: all its players were back in under a second and every race finished ([report](https://github.com/Ketan-Verma21/TypeRacerServer/blob/master/docs/load-test.md)).
-- **Tested** – 280+ server tests, including contract tests that every storage adapter (in-memory and Redis) must pass, and end-to-end tests with real sockets and two real servers.
+- **Kafka for stats** – when a race starts or ends, the server only sends an event to Kafka; a separate **stats worker** updates the leaderboard. The worker or Kafka can be stopped mid-race and nobody notices; the stats catch up afterwards, every race counted exactly once ([report](https://github.com/Ketan-Verma21/TypeRacerServer/blob/master/docs/kafka.md)).
+- **Tested** – 300+ server tests, including contract tests that every storage adapter (in-memory and Redis) must pass, and end-to-end tests with real sockets and two real servers.
 
 ## 🧱 Tech Stack
 
@@ -64,26 +65,30 @@ Create a room, share the code, and race your friends to type the same quote the 
 | App | Flutter, Provider, socket_io_client 3, flutter_animate, google_fonts, confetti, audioplayers |
 | Server | TypeScript (strict), Node.js 20, Express, Socket.IO 4 + Redis adapter, zod, pino |
 | Data | Redis (games, sessions, race clock, leaderboard, pub/sub between servers) |
+| Events | Kafka (KRaft) + a stats worker |
 | Quotes | [API Ninjas Quotes API](https://api-ninjas.com/api/quotes), with 108 bundled quotes as a fallback |
-| Infra | Docker + Docker Compose (two game servers + Redis) |
+| Infra | Docker Compose: Nginx → three game servers → Redis, plus Kafka and the stats worker |
 | Tests | Vitest (server), flutter_test (app) |
 
 ## 🏗️ Architecture
 
 ```
- Flutter app (player A) ──┐                       ┌── Flutter app (player B)
-                          │ Socket.IO             │ Socket.IO
-                          ▼                       ▼
-                 ┌──────────────────┐   ┌──────────────────┐
-                 │  game server 1   │   │  game server 2   │   same code, same image
-                 │  (app1 :3000)    │   │  (app2 :3001)    │
-                 └────────┬─────────┘   └─────────┬────────┘
-                          └───────────┬───────────┘
-                                      ▼
-                         ┌────────────────────────┐
-                         │         Redis          │  games · sessions · race clock ·
-                         │                        │  leaderboard · pub/sub between servers
-                         └────────────────────────┘
+ Flutter app (player A) ──┐                         ┌── Flutter app (player B)
+                          │ Socket.IO (WebSocket)   │
+                          ▼                         ▼
+                 ┌────────────────────────────────────────┐
+                 │          Nginx :8080 (least_conn)      │
+                 └───────┬──────────────┬─────────────┬───┘
+                         ▼              ▼             ▼
+                      app1           app2          app3      same code, same image
+                         ├──────────────┼─────────────┘
+                  events │              ▼
+                         ▼    ┌────────────────────────┐
+                 ┌─────────┐  │         Redis          │  games · sessions · race clock ·
+                 │  Kafka  │  │                        │  leaderboard · pub/sub between servers
+                 └────┬────┘  └────────────────────────┘
+                      ▼                   ▲
+                 stats-worker ────────────┘  leaderboard, match history
 ```
 
 The **server owns the game**. The app sends intent (create, join, start, typed a word) and renders the state the server broadcasts (`updateGame`, `timer`). Red/green letter feedback in the app is only a visual hint; whether a word is correct is always decided by the server.
@@ -190,7 +195,7 @@ The full list, with payloads, is in the [server README](https://github.com/Ketan
 - [x] Redis as the datastore, leaderboard and match history (server side)
 - [x] Several game servers at once (Socket.IO Redis adapter, race clock in Redis)
 - [x] Nginx load balancer + load testing (1,000 players, p95 17 ms)
-- [ ] Kafka for post-race events (stats, anti-cheat)
+- [x] Kafka for post-race events: a separate stats worker, replayable stats, anti-cheat flags
 - [x] CI for the app: Codemagic builds the Flutter web app
 - [ ] CI for the server: GitHub Actions running the tests on every push
 - [ ] Leaderboard screen in the app

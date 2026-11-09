@@ -3,9 +3,9 @@
 > Progress log for AI assistants. Read after `Rules.md`, before coding. Update at the end of every session.
 
 ## Current status
-- Phase: 6 — Nginx & load testing (✅ done on server branch `phase-6-nginx-load`; app docs on `phase-6-docs`; merge next). Phases 0–5 ✅ merged.
+- Phase: 7 — Kafka + stats-worker (✅ done on server branch `phase-7-kafka`; app docs on `phase-7-docs`; merge next). Phases 0–6 ✅ merged.
 - Machine: **Ubuntu 22.04** (zsh; Node 20.20.2 via nvm 0.40.3, npm 11.21.1; Docker 29.1.3 from Ubuntu's `docker.io` + `docker-compose-v2`; Flutter 3.47.7 (snap, Dart 3.13.5); Chrome 156). Repos at `~/Code/Project/type_racer` (+ `server/`).
-- Last session: 2026-11-06 — Phase 6: Nginx + 3 servers, load generator, 1,000/2,000-player runs, kill test; report in `server/docs/load-test.md`.
+- Last session: 2026-11-09 — Phase 7: Kafka broker + topics in Compose, Kafka producer on the game servers, `stats-worker`, four experiments; report in `server/docs/kafka.md`.
 
 ## Done
 - 2026-10-22 v1 analysed → `PROJECT_OVERVIEW.md`.
@@ -56,6 +56,11 @@
 - 2026-11-06 **6.3/6.4:** full runs (see Measurements). **Bug found:** with app2/app3 stopped, 58/125 rooms timed out — Nginx's default 60 s `proxy_connect_timeout` kept sending connections to dead servers. Fix: `proxy_connect_timeout 2s` + `proxy_next_upstream error timeout` + `proxy_next_upstream_tries 3` → 125/125.
 - 2026-11-06 **6.5:** `server/docs/load-test.md` + README "Performance" section.
 
+- 2026-11-06 **7.1/7.2:** events carry an `eventId`; `ProcessedEvents` port (memory + Redis `SET stats:done:{id} NX EX 86400`); `StatsService.onEvent` claims → handles → releases on error; `domain/antiCheat.ts` (> 250 WPM flagged, kept off the leaderboard); match counts (`HINCRBY stats:matches`); `RaceClock` publishes `match.started`.
+- 2026-11-06 **7.3:** `@confluentinc/kafka-javascript` 1.11.0 (KafkaJS-style API). `KafkaEventPublisher` (topic per event type, key = gameId, JSON; fire-and-forget, never throws); idempotent producer `acks=all`; `keepTrying` connects in the background; `EVENTS=inprocess|kafka` + `KAFKA_BROKERS`. Compose: `apache/kafka:4.1.0` KRaft (internal `kafka:9092`, host `localhost:9094`) + `kafka-init` (2 topics × 2 partitions). Dockerfile `deps` stage with python3/make/g++ for the native client. 315 tests.
+- 2026-11-08 **7.4:** `src/worker.ts` + `KafkaStatsConsumer` (group `stats-worker`, autoCommit off, commit offset + 1 after the Redis writes; Redis down → retry with backoff 0.5–10 s; bad messages logged + skipped; `decodeEvent` validates with zod). Compose `stats-worker` (same image, `node dist/worker.js`). Nginx healthcheck → `127.0.0.1` (`localhost` = ::1 inside the container → was "unhealthy").
+- 2026-11-09 **7.5:** experiments → `server/docs/kafka.md` + README "Kafka experiments" (see Measurements).
+
 ## Decisions
 - 2026-10-22 Env var names stay `API_URL` / `API_KEY` (match existing .env and Render), not QUOTES_API_*.
 - 2026-10-22 Pretty logs only when stdout is a terminal, so Render gets JSON without needing NODE_ENV=production (which would make `npm ci` skip the dev dependencies the build needs).
@@ -85,6 +90,12 @@
 - 2026-11-04 Load balancing is **not sticky** (`least_conn`): the server accepts WebSocket only, so a connection never needs to return to the same instance; `ip_hash` would put a one-IP load test on one server.
 - 2026-11-04 Load tool: own TypeScript bots (socket.io-client) instead of Artillery — 8 coordinated players per room and exact word→broadcast timing; no new dependency.
 
+- 2026-11-06 Two topics (`match.started`, `match.finished`), not three: `player.finished` dropped — nothing consumes it yet.
+- 2026-11-06 Kafka client = `@confluentinc/kafka-javascript` (librdkafka, maintained) instead of `kafkajs` (unmaintained). Native module → compiled at install; the Docker `deps` stage has build tools, the `build` stage uses `npm ci --ignore-scripts`.
+- 2026-11-06 Publishing is fire-and-forget: a race never waits for Kafka. Connecting never blocks startup and Kafka isn't part of `/health/ready`.
+- 2026-11-08 The worker commits manually after the Redis writes (at-least-once) and relies on `eventId` dedup → effectively once. A Redis outage blocks the partition (retry) instead of skipping, to keep a room's events in order.
+- 2026-11-08 Production (Phase 9) stays `EVENTS=inprocess` (no free Kafka needed); Kafka is for local runs and demos.
+
 ## Decisions (Phase 1 design)
 - `Notifier` port (gameChanged/timer/raceOver/playerFinished/chat*/reaction) instead of a generic Broadcaster — services never see Socket.IO event names.
 - `RoomMembership` port: services add a socket to the game room *before* broadcasting (creator must receive the first `updateGame`). In Phase 5 this maps to `io.in(socketId).socketsJoin(room)`, which works across instances.
@@ -96,12 +107,16 @@
 - Create with an empty nickname now replies `notCorrectGame "Please enter your name"` (v1 silently ignored it).
 
 ## Next steps
-1. Merge `phase-6-nginx-load` (server) and `phase-6-docs` (app) into master.
-2. Phase 7 — Kafka + stats-worker (post-race events only; NFR-4's "kill the worker" experiment).
+1. Merge `phase-7-kafka` (server) and `phase-7-docs` (app) into master.
+2. Phase 8 — Flutter SOLID refactor & tests.
 3. Phase 9 (end): host the server (Render + Render Key Value), set `SERVER_URL` in Codemagic, deploy the web build to Vercel, add a "Play it live" link.
 
 ## Known issues / TODO
 - ~~2026-10-26 Restarting the app mid-countdown or mid-race froze that room~~ — fixed in Phase 5.4 (race clock in Redis).
+- 2026-11-09 Dedup gap: if Redis dies after `claim` but before the writes, `release` fails too → the retried event is skipped for 24 h. Fix later with one Lua script (claim + writes).
+- 2026-11-09 While Kafka is down, librdkafka logs `Connection refused` on every reconnect (noisy, harmless).
+- 2026-11-09 Not yet shown: events produced *while* Kafka is down are kept (in exp. 4 the races started around the stop and finished after the restart). Stricter test: stop Kafka before the races start.
+- 2026-11-06 Docker pulls failed (IPv6 unreachable + systemd-resolved timeouts) → `DNS=1.1.1.1 8.8.8.8` in `/etc/systemd/resolved.conf`; IPv6 disabled until reboot with `sysctl` when needed.
 - 2026-11-03 Crash window: between claiming a deadline and scheduling the next phase, a crash leaves that room without a clock entry (stuck). Rare; a "repair stuck rooms" sweep could fix it later.
 - 2026-10-26 The AI's file writes to the device can land late or stale if a file is edited after creation → it now writes each version to a fresh path and verifies the device copy (checksum) after every write. Commit only behind `&&` (format → typecheck → lint → test).
 - 2026-10-22 Node 20 is past end-of-life (April 2026). Kept per plan; consider Node 22 (image + nvm + `engines`) as a small separate change.
@@ -118,9 +133,15 @@
 - Server: `cd server && npm run dev` · `npm test` · `npm run test:coverage`
 - Docker: `cd server && docker compose up --build -d` (game on http://localhost:8080) · `docker compose ps` · `docker compose logs -f app1 app2 app3` · `docker compose stop app2` (kill test) · `docker compose down`
 - Load test: `ulimit -n 8192 && npm run load -- --rooms 125` (server folder, stack running)
+- Kafka: `docker compose logs stats-worker` · consumer lag: `docker compose exec kafka /opt/kafka/bin/kafka-consumer-groups.sh --bootstrap-server localhost:9092 --describe --group stats-worker` · watch events: `... kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic match.finished --from-beginning --property print.key=true` · two workers: `docker compose up -d --scale stats-worker=2`
 - Client: `flutter test` · `flutter run -d chrome --dart-define=SERVER_URL=http://localhost:3000`
 
 ## Measurements
+- 2026-11-09 **Kafka experiments** (`server/docs/kafka.md`), same laptop, bots at 60 WPM:
+  - Worker stopped, 20 races: 20/20 finished; 40 events waited (lag 9 + 11 per topic); restart → caught up in 20 s (mostly container start + group join); match count 22 → 42
+  - `--scale stats-worker=2`: each worker got 2 of the 4 partitions
+  - Stats wiped + offsets reset to earliest: match count 42 → 0 → 42. Leaderboard rebuilt from Phase 7 races only (Phase 6 bot scores predate Kafka)
+  - Kafka stopped 30 s during 10 races: 10/10 finished, p95 7 ms; match count 42 → 52
 - 2026-11-06 **Load test** (`server/docs/load-test.md`), i7-1165G7 4c/8t, 15 GiB, everything on one laptop; bots at 60 WPM, long quote, 60 s races:
   - 1,000 players · 3 servers: 125/125 rooms · word→broadcast p50 3 · p95 **17** · p99 34 ms · servers 55–80 % CPU, ~100–128 MiB each
   - 1,000 players · 1 server: 125/125 · p95 16 ms · server at 100–124 % CPU (its ceiling)
