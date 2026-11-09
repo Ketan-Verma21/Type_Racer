@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
-import '../utils/game_modes.dart';
+import 'package:type_racer/domain/game_modes.dart';
 
 /// Live stats strip for the local player: WPM, accuracy, progress, mode.
 class StatsBar extends StatelessWidget {
@@ -10,6 +10,7 @@ class StatsBar extends StatelessWidget {
   final int done;
   final int total;
   final GameMode mode;
+  final double maxWidth;
 
   const StatsBar({
     Key? key,
@@ -18,6 +19,7 @@ class StatsBar extends StatelessWidget {
     required this.done,
     required this.total,
     required this.mode,
+    this.maxWidth = 600,
   }) : super(key: key);
 
   Widget _tile(String label, String value, Color color) {
@@ -26,9 +28,9 @@ class StatsBar extends StatelessWidget {
         margin: const EdgeInsets.symmetric(horizontal: 4),
         padding: const EdgeInsets.symmetric(vertical: 8),
         decoration: BoxDecoration(
-          color: AppColors.surface.withOpacity(0.85),
+          color: AppColors.surface.withValues(alpha: 0.85),
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: color.withOpacity(0.35)),
+          border: Border.all(color: color.withValues(alpha: 0.35)),
         ),
         child: Column(
           children: [
@@ -49,7 +51,7 @@ class StatsBar extends StatelessWidget {
         ? AppColors.green
         : (accuracy >= 0.85 ? AppColors.yellow : AppColors.red);
     return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 600),
+      constraints: BoxConstraints(maxWidth: maxWidth),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 12),
         child: Row(

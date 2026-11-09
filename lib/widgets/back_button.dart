@@ -16,7 +16,7 @@ class MyBackButton extends StatelessWidget {
           decoration: BoxDecoration(
             color: AppColors.surfaceHigh,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.cyan.withOpacity(0.35)),
+            border: Border.all(color: AppColors.cyan.withValues(alpha: 0.35)),
           ),
           child: const Icon(
             Icons.arrow_back_ios_new_rounded,

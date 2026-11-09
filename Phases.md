@@ -14,7 +14,7 @@
 | 5 | Multi-instance: Socket.IO v4, Redis adapter, distributed clock | Ubuntu | Horizontal scaling, pub/sub, distributed claims | ✅ |
 | 6 | Nginx load balancer & load testing | Ubuntu | Reverse proxy, WebSockets, measuring scale | ✅ |
 | 7 | Kafka event streaming + stats-worker | Ubuntu | Topics, partitions, consumer groups, replay | ✅ |
-| 8 | Flutter SOLID refactor & tests | either | Client architecture, widget tests | ⬜ |
+| 8 | Flutter SOLID refactor & tests | either | Client architecture, widget tests | ✅ |
 | 9 | CI & production deploy | either | CI/CD, ops | ⬜ |
 | 10 | Extras (optional) | either | Product features | ⬜ |
 
@@ -162,17 +162,19 @@
 ---
 
 ## Phase 8 — Flutter SOLID refactor & tests
-- [ ] Typed models (`Game`, `Player`, `GameSettings`, `ChatMessage`, `Reaction`, `TimerState`, `LeaderboardEntry`) + tests.
-- [ ] `socket_events.dart`; `GameRepository` (abstract) + `SocketGameRepository`; `FakeGameRepository`.
-- [ ] Providers depend on `GameRepository`.
-- [ ] Split `game_screen.dart` into `views/lobby|race|watch|results`.
-- [ ] Pure logic → `domain/`.
-- [ ] Leaderboard screen (FR-15).
-- [ ] Remove unused packages after confirming: neopop, firebase_core, feedback_sentry, shorebird_code_push.
-- [ ] Widget tests: RaceLane, Scoreboard, SettingsPanel, StatsBar, game views.
-- [ ] `withOpacity` → `withValues(alpha:)` if the SDK supports it.
+- [x] Typed models (`Game`, `Player`, `GameSettings`, `ChatMessage`, `Reaction`, `TimerState`, `LeaderboardEntry` + `Leaderboard`) + tests.
+- [x] `socket_events.dart`; `GameRepository` (abstract) + `SocketGameRepository`; `FakeGameRepository`.
+- [x] Providers depend on `GameRepository`.
+- [x] Split `game_screen.dart` into `views/lobby|race|watch|results`.
+- [x] Pure logic → `domain/`.
+- [x] Leaderboard screen (FR-15) — a panel on Home on wide screens, its own screen on phones.
+- [x] **Responsive web layout (FR-19, added 2026-11-09):** `ui/layout/breakpoints.dart` (phone < 700 · tablet 700–1100 · desktop ≥ 1100); multi-column lobby / race / watch / results / home; widget tests at 400, 900, 1440 px.
+- [x] Remove unused packages after confirming: neopop, firebase_core, feedback_sentry, shorebird_code_push (+ loader_overlay; Firebase Hosting config removed too).
+- [x] Widget tests: RaceLane, Scoreboard, SettingsPanel, StatsBar, game views.
+- [x] `withOpacity` → `withValues(alpha:)` if the SDK supports it.
 
 **Done when:** `flutter test` green, ≥ 80 % on `domain/` + models; app looks the same.
+✅ 2026-11-09: 90+ tests green, analyze clean; app looks the same on phones and now fills the window on desktop (FR-19).
 
 ---
 

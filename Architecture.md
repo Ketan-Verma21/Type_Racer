@@ -412,10 +412,13 @@ test/
 └── widget/
 ```
 
+> **As built (Phase 8):** screens stay in `screens/` (with `screens/game/views/`) and widgets in `widgets/` instead of `ui/screens` · `ui/widgets`; `ui/layout/` holds `breakpoints.dart` (`ScreenSize`, `Responsive`) and `panel.dart`. `state/`: `GameController` (game, timer, me, actions), `ChatProvider`, `LeaderboardController`, `ServerStatusProvider`, `TypingStats`. `config/env.dart` has `kServerUrl`. The socket repository passes room events on only between create/join and leave (replaces the v1 `off()`/`on()` juggling) and sends `rejoin-game` on reconnect.
+
 ### 8.2 Client principles
 - Widgets → state (ChangeNotifier) → `GameRepository` (abstract) → socket. Tests use `FakeGameRepository`.
 - Typed models instead of raw `Map`s.
 - "Me" = `playerId` from the `joined` event, not `socket.id`.
+- Responsive (FR-19): layouts pick a variant from the space they get — phone < 700 px, tablet 700–1100, desktop ≥ 1100 — via `Responsive` / `ScreenSize`; no hard-coded 600 px column on wide screens.
 
 ---
 

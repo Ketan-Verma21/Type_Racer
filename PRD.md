@@ -92,6 +92,7 @@ Priority: **Must** · **Should** · **Could**.
 | FR-16 | Match events (`match.started`, `match.finished`, `player.finished`) published through an `EventPublisher`; with Kafka enabled, a stats worker consumes them to update leaderboard, history and anti-cheat flags. | Should |
 | FR-17 | Anti-cheat: flag results with impossible WPM (> 250) or words faster than humanly possible; flagged results are excluded from the leaderboard. | Could |
 | FR-18 | App branded "Type Racer" everywhere (title, Android label, web title/manifest, package id). | Must |
+| FR-19 | Responsive layout (added 2026-11-09). The app uses the whole window as a web app, not a phone-sized column: **phone** < 700 px = one column; **tablet** 700–1100 px = two columns; **desktop** ≥ 1100 px = multi-column layouts with side panels. Lobby: room code + settings, players and chat side by side, chat visible without scrolling. Race: quote and typing box wide (up to 1000 px) and centred, lanes in two columns for 3+ racers. Results / watch: scoreboard next to the actions. Home on desktop: the leaderboard (FR-15) beside Create / Join. Must lay out without overflow at 400, 900 and 1440 px (widget tests). | Must |
 
 ### 7.2 Non-functional
 

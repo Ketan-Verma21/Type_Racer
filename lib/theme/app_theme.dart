@@ -5,6 +5,14 @@ import 'app_colors.dart';
 class AppTheme {
   AppTheme._();
 
+  /// Tests turn this off: they can't download fonts, so text uses the
+  /// default font there (test/flutter_test_config.dart).
+  static bool useGoogleFonts = true;
+
+  static TextStyle _font(String family, TextStyle Function({TextStyle? textStyle}) google,
+          TextStyle style) =>
+      useGoogleFonts ? google(textStyle: style) : style.copyWith(fontFamily: family);
+
   /// Orbitron: headings, buttons, numbers (game feel).
   static TextStyle display({
     double size = 24,
@@ -12,11 +20,10 @@ class AppTheme {
     Color color = AppColors.textPrimary,
     double spacing = 1.5,
   }) =>
-      GoogleFonts.orbitron(
-        fontSize: size,
-        fontWeight: weight,
-        color: color,
-        letterSpacing: spacing,
+      _font(
+        'Orbitron',
+        GoogleFonts.orbitron,
+        TextStyle(fontSize: size, fontWeight: weight, color: color, letterSpacing: spacing),
       );
 
   /// Rajdhani: body text.
@@ -25,7 +32,13 @@ class AppTheme {
     FontWeight weight = FontWeight.w600,
     Color color = AppColors.textPrimary,
   }) =>
-      GoogleFonts.rajdhani(fontSize: size, fontWeight: weight, color: color);
+      _font('Rajdhani', GoogleFonts.rajdhani,
+          TextStyle(fontSize: size, fontWeight: weight, color: color));
+
+  /// JetBrains Mono: the quote and the typing box (letters line up).
+  static TextStyle mono({double size = 20, double? height, Color? color, FontWeight? weight}) =>
+      _font('JetBrains Mono', GoogleFonts.jetBrainsMono,
+          TextStyle(fontSize: size, height: height, color: color, fontWeight: weight));
 
   static ThemeData get dark {
     final base = ThemeData.dark(useMaterial3: true);
@@ -37,7 +50,7 @@ class AppTheme {
         surface: AppColors.surface,
         error: AppColors.red,
       ),
-      textTheme: GoogleFonts.rajdhaniTextTheme(base.textTheme).apply(
+      textTheme: (useGoogleFonts ? GoogleFonts.rajdhaniTextTheme(base.textTheme) : base.textTheme).apply(
         bodyColor: AppColors.textPrimary,
         displayColor: AppColors.textPrimary,
       ),
@@ -50,7 +63,7 @@ class AppTheme {
       ),
       chipTheme: ChipThemeData(
         backgroundColor: AppColors.surfaceHigh,
-        side: BorderSide(color: AppColors.cyan.withOpacity(0.4)),
+        side: BorderSide(color: AppColors.cyan.withValues(alpha: 0.4)),
         shape: const StadiumBorder(),
         labelStyle: body(size: 16, weight: FontWeight.w700),
       ),
@@ -66,7 +79,7 @@ class AppTheme {
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide(color: AppColors.cyan.withOpacity(0.15)),
+          borderSide: BorderSide(color: AppColors.cyan.withValues(alpha: 0.15)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(14),

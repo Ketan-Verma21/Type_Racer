@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
-import '../utils/game_modes.dart';
+import 'package:type_racer/data/models/game_settings.dart';
+import 'package:type_racer/domain/game_modes.dart';
 
 /// Lobby settings. The host gets chips to change them; everyone else sees a
 /// read-only summary.
 class SettingsPanel extends StatelessWidget {
-  final Map<String, dynamic> settings;
+  final GameSettings settings;
   final bool isLeader;
   final int racerCount;
-  final void Function(Map<String, dynamic> newSettings) onChange;
+  final void Function(GameSettings newSettings) onChange;
 
   const SettingsPanel({
     Key? key,
@@ -18,10 +19,6 @@ class SettingsPanel extends StatelessWidget {
     required this.racerCount,
     required this.onChange,
   }) : super(key: key);
-
-  void _set(String key, dynamic value) {
-    onChange({...settings, key: value});
-  }
 
   Widget _chip(String label, bool selected, VoidCallback onTap) {
     return ChoiceChip(
@@ -35,7 +32,7 @@ class SettingsPanel extends StatelessWidget {
       showCheckmark: false,
       selectedColor: AppColors.cyan,
       backgroundColor: AppColors.surfaceHigh,
-      side: BorderSide(color: AppColors.cyan.withOpacity(0.3)),
+      side: BorderSide(color: AppColors.cyan.withValues(alpha: 0.3)),
       onSelected: (_) => onTap(),
     );
   }
@@ -58,17 +55,17 @@ class SettingsPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final mode = GameModes.byId(settings['mode']?.toString());
-    final time = (settings['timeLimit'] as num).toInt();
-    final length = settings['length'].toString();
-    final maxPlayers = (settings['maxPlayers'] as num).toInt();
+    final mode = GameModes.byId(settings.mode);
+    final time = settings.timeLimit;
+    final length = settings.length;
+    final maxPlayers = settings.maxPlayers;
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surface.withOpacity(0.85),
+        color: AppColors.surface.withValues(alpha: 0.85),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.magenta.withOpacity(0.35)),
+        border: Border.all(color: AppColors.magenta.withValues(alpha: 0.35)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -93,7 +90,7 @@ class SettingsPanel extends StatelessWidget {
                 children: [
                   for (final m in GameModes.all)
                     _chip('${m.emoji} ${m.name}', m.id == mode.id,
-                        () => _set('mode', m.id)),
+                        () => onChange(settings.copyWith(mode: m.id))),
                 ],
               ),
             ),
@@ -108,7 +105,7 @@ class SettingsPanel extends StatelessWidget {
                 spacing: 8,
                 children: [
                   for (final t in GameModes.times)
-                    _chip('${t}s', t == time, () => _set('timeLimit', t)),
+                    _chip('${t}s', t == time, () => onChange(settings.copyWith(timeLimit: t))),
                 ],
               ),
             ),
@@ -118,7 +115,7 @@ class SettingsPanel extends StatelessWidget {
                 spacing: 8,
                 children: [
                   for (final e in GameModes.lengths.entries)
-                    _chip(e.value, e.key == length, () => _set('length', e.key)),
+                    _chip(e.value, e.key == length, () => onChange(settings.copyWith(length: e.key))),
                 ],
               ),
             ),
@@ -128,7 +125,7 @@ class SettingsPanel extends StatelessWidget {
                 children: [
                   IconButton(
                     onPressed: maxPlayers > racerCount && maxPlayers > 1
-                        ? () => _set('maxPlayers', maxPlayers - 1)
+                        ? () => onChange(settings.copyWith(maxPlayers: maxPlayers - 1))
                         : null,
                     icon: const Icon(Icons.remove_circle_outline_rounded),
                     color: AppColors.cyan,
@@ -137,7 +134,7 @@ class SettingsPanel extends StatelessWidget {
                       style: AppTheme.display(size: 18, color: AppColors.cyan)),
                   IconButton(
                     onPressed: maxPlayers < 8
-                        ? () => _set('maxPlayers', maxPlayers + 1)
+                        ? () => onChange(settings.copyWith(maxPlayers: maxPlayers + 1))
                         : null,
                     icon: const Icon(Icons.add_circle_outline_rounded),
                     color: AppColors.cyan,

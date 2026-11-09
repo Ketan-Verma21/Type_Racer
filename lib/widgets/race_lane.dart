@@ -35,13 +35,13 @@ class RaceLane extends StatelessWidget {
         margin: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
         decoration: BoxDecoration(
-          color: AppColors.surface.withOpacity(0.85),
+          color: AppColors.surface.withValues(alpha: 0.85),
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
-            color: isMe ? AppColors.cyan : color.withOpacity(0.4),
+            color: isMe ? AppColors.cyan : color.withValues(alpha: 0.4),
             width: isMe ? 2 : 1,
           ),
-          boxShadow: [BoxShadow(color: color.withOpacity(0.12), blurRadius: 14)],
+          boxShadow: [BoxShadow(color: color.withValues(alpha: 0.12), blurRadius: 14)],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -130,7 +130,7 @@ class RaceLane extends StatelessWidget {
                           borderRadius: BorderRadius.circular(4),
                           boxShadow: [
                             BoxShadow(
-                                color: color.withOpacity(0.7), blurRadius: 10)
+                                color: color.withValues(alpha: 0.7), blurRadius: 10)
                           ],
                         ),
                       ),

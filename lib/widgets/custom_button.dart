@@ -58,7 +58,7 @@ class _CustomButtonState extends State<CustomButton> {
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: glow.withOpacity(!enabled ? 0 : (_pressed ? 0.25 : 0.55)),
+                  color: glow.withValues(alpha: !enabled ? 0 : (_pressed ? 0.25 : 0.55)),
                   blurRadius: _pressed ? 8 : 22,
                   spreadRadius: _pressed ? 0 : 1,
                 ),

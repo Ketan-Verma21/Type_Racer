@@ -44,8 +44,10 @@ Create a room, share the code, and race your friends to type the same quote the 
 ### Social
 - **Lobby chat** and **emoji reactions** that float across everyone's screen.
 - **Ranked scoreboard** with medals, winner banner and WPM.
+- **Leaderboard** – top racers per game mode; next to Create / Join on desktop, its own screen on phones.
 
 ### Polish
+- **A real web app** – on a desktop browser the lobby shows settings, players and chat side by side, the quote and typing box are wide, and lanes go into two columns; on a phone it's one column. Three layouts: phone (< 700 px), tablet, desktop (≥ 1100 px).
 - **Neon-arcade UI** – animated background, glowing buttons, countdown pop, entrance animations.
 - **Winner celebration** – confetti, sound effects and haptic feedback (with a mute button).
 - **Resilient connections** – a dropped player has 15 seconds to reconnect and keep their place; leaving players are removed cleanly and the host role is passed on.
@@ -56,7 +58,7 @@ Create a room, share the code, and race your friends to type the same quote the 
 - **Redis as the datastore** – Lua scripts make "take the last seat" atomic, rooms clean themselves up after 2 hours, and there's a leaderboard and match history.
 - **Load-tested** – 1,000 bots racing at once through Nginx on 3 servers: a typed word reaches everyone in **17 ms** (p95). Killing a server mid-race: all its players were back in under a second and every race finished ([report](https://github.com/Ketan-Verma21/TypeRacerServer/blob/master/docs/load-test.md)).
 - **Kafka for stats** – when a race starts or ends, the server only sends an event to Kafka; a separate **stats worker** updates the leaderboard. The worker or Kafka can be stopped mid-race and nobody notices; the stats catch up afterwards, every race counted exactly once ([report](https://github.com/Ketan-Verma21/TypeRacerServer/blob/master/docs/kafka.md)).
-- **Tested** – 300+ server tests, including contract tests that every storage adapter (in-memory and Redis) must pass, and end-to-end tests with real sockets and two real servers.
+- **Tested** – 300+ server tests, including contract tests that every storage adapter (in-memory and Redis) must pass, and end-to-end tests with real sockets and two real servers. The app has 90+ unit and widget tests: typed models, game logic, state with a fake server, and every game screen drawn at phone, tablet and desktop width.
 
 ## 🧱 Tech Stack
 
@@ -100,15 +102,21 @@ The server is its own repository — **[Ketan-Verma21/TypeRacerServer](https://g
 ```
 type_racer/                      # Flutter project (this repo)
 ├── lib/
-│   ├── main.dart
-│   ├── theme/                   # colour palette + theme
-│   ├── screens/                 # home, create room, join room, game
+│   ├── main.dart · app.dart     # Sentry + runApp · providers and routes (the only place that picks the real server)
+│   ├── config/                  # SERVER_URL
+│   ├── data/
+│   │   ├── models/              # Game, Player, GameSettings, TimerState, ChatMessage, Reaction, Leaderboard
+│   │   ├── socket/              # the socket connection + every event name
+│   │   └── repositories/        # GameRepository (interface) + SocketGameRepository
+│   ├── domain/                  # pure rules: ranking, live WPM, game modes, room codes
+│   ├── state/                   # GameController, ChatProvider, LeaderboardController, ...
+│   ├── ui/layout/               # breakpoints (phone / tablet / desktop) + panels
+│   ├── screens/                 # home, create, join, leaderboard, game/ (+ views: lobby, race, watch, results)
 │   ├── widgets/                 # race lane, scoreboard, chat, settings, buttons...
-│   ├── providers/               # game state, client state, chat
-│   ├── models/                  # GameState
-│   └── utils/                   # socket client/methods, room codes, sounds, helpers
+│   ├── theme/                   # colour palette + theme
+│   └── utils/                   # sounds
 ├── assets/sounds/               # sound effects
-├── test/unit/                   # unit tests
+├── test/                        # unit/ (models, domain, state) · widget/ (screens at 3 widths) · fakes/
 └── server/                      # the TypeRacerServer repo, cloned here (ignored by this repo)
 ```
 
@@ -198,7 +206,8 @@ The full list, with payloads, is in the [server README](https://github.com/Ketan
 - [x] Kafka for post-race events: a separate stats worker, replayable stats, anti-cheat flags
 - [x] CI for the app: Codemagic builds the Flutter web app
 - [ ] CI for the server: GitHub Actions running the tests on every push
-- [ ] Leaderboard screen in the app
+- [x] Leaderboard in the app + responsive web layout (phone, tablet, desktop)
+- [x] App refactor: typed models, a repository interface, state with no socket code, 90+ tests
 - [ ] Login and player profiles
 - [ ] Power-ups
 

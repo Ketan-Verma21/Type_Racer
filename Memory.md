@@ -3,9 +3,9 @@
 > Progress log for AI assistants. Read after `Rules.md`, before coding. Update at the end of every session.
 
 ## Current status
-- Phase: 7 — Kafka + stats-worker (✅ done on server branch `phase-7-kafka`; app docs on `phase-7-docs`; merge next). Phases 0–6 ✅ merged.
+- Phase: 8 — Flutter refactor + responsive web layout (✅ done on app branch `phase-8-flutter`; merge next). Phases 0–7 ✅ merged.
 - Machine: **Ubuntu 22.04** (zsh; Node 20.20.2 via nvm 0.40.3, npm 11.21.1; Docker 29.1.3 from Ubuntu's `docker.io` + `docker-compose-v2`; Flutter 3.47.7 (snap, Dart 3.13.5); Chrome 156). Repos at `~/Code/Project/type_racer` (+ `server/`).
-- Last session: 2026-11-09 — Phase 7: Kafka broker + topics in Compose, Kafka producer on the game servers, `stats-worker`, four experiments; report in `server/docs/kafka.md`.
+- Last session: 2026-11-09 — Phase 7 merged; Phase 8: typed models, `GameRepository` + `GameController`, game screen split into views, leaderboard, responsive layout (FR-19), 90+ Flutter tests.
 
 ## Done
 - 2026-10-22 v1 analysed → `PROJECT_OVERVIEW.md`.
@@ -61,6 +61,11 @@
 - 2026-11-08 **7.4:** `src/worker.ts` + `KafkaStatsConsumer` (group `stats-worker`, autoCommit off, commit offset + 1 after the Redis writes; Redis down → retry with backoff 0.5–10 s; bad messages logged + skipped; `decodeEvent` validates with zod). Compose `stats-worker` (same image, `node dist/worker.js`). Nginx healthcheck → `127.0.0.1` (`localhost` = ::1 inside the container → was "unhealthy").
 - 2026-11-09 **7.5:** experiments → `server/docs/kafka.md` + README "Kafka experiments" (see Measurements).
 
+- 2026-11-09 **8.1:** removed neopop, firebase_core, loader_overlay, feedback_sentry, shorebird_code_push + Firebase Hosting config; `withOpacity` → `withValues(alpha:)` (44×); fixed 8 old lints (Sentry `profilesSampleRate` dropped: experimental, no-op on web).
+- 2026-11-09 **8.2:** `data/models/` (Game, Player, GameSettings, TimerState, ChatMessage, Reaction, Leaderboard; forgiving JSON readers) + `domain/` (ranking, race_stats, game_modes, room_code).
+- 2026-11-09 **8.3/8.4:** `socket_events.dart`, `GameRepository` + `SocketGameRepository` (room events passed on only between create/join and leave; rejoin on reconnect), `GameController`, `ChatProvider`/`LeaderboardController` on the repository; `EnterGame` mixin for Create/Join; game screen → `screens/game/` + `views/lobby|race|watch|results` (`viewFor()`); `app.dart` wiring; `FakeGameRepository`.
+- 2026-11-09 **FR-19 + 8.5/8.6 (owner request):** responsive layout — `ui/layout/breakpoints.dart` (phone < 700 · tablet 700–1100 · desktop ≥ 1100), multi-column lobby (chat always visible), wide race + 2-column lanes, side-by-side watch/results; leaderboard panel on Home (desktop) / `/leaderboard` screen (phone); widget tests at 400/900/1440 px; `AppTheme.useGoogleFonts` off in tests (`test/flutter_test_config.dart`). Server wake-up now starts at launch (`ServerStatusProvider()..wake()`).
+
 ## Decisions
 - 2026-10-22 Env var names stay `API_URL` / `API_KEY` (match existing .env and Render), not QUOTES_API_*.
 - 2026-10-22 Pretty logs only when stdout is a terminal, so Render gets JSON without needing NODE_ENV=production (which would make `npm ci` skip the dev dependencies the build needs).
@@ -96,6 +101,10 @@
 - 2026-11-08 The worker commits manually after the Redis writes (at-least-once) and relies on `eventId` dedup → effectively once. A Redis outage blocks the partition (retry) instead of skipping, to keep a room's events in order.
 - 2026-11-08 Production (Phase 9) stays `EVENTS=inprocess` (no free Kafka needed); Kafka is for local runs and demos.
 
+- 2026-11-09 Client keeps `screens/` + `widgets/` folders (not `ui/screens|widgets`); only `ui/layout/` is new — less churn, same layering.
+- 2026-11-09 No mocking package: hand-written `FakeGameRepository` (Rules allow `mocktail`, not needed).
+- 2026-11-09 Responsive breakpoints decide from the space a layout gets (`Responsive` uses LayoutBuilder), screen-level sizes from the window (`ScreenSize.of`).
+
 ## Decisions (Phase 1 design)
 - `Notifier` port (gameChanged/timer/raceOver/playerFinished/chat*/reaction) instead of a generic Broadcaster — services never see Socket.IO event names.
 - `RoomMembership` port: services add a socket to the game room *before* broadcasting (creator must receive the first `updateGame`). In Phase 5 this maps to `io.in(socketId).socketsJoin(room)`, which works across instances.
@@ -107,12 +116,13 @@
 - Create with an empty nickname now replies `notCorrectGame "Please enter your name"` (v1 silently ignored it).
 
 ## Next steps
-1. Merge `phase-7-kafka` (server) and `phase-7-docs` (app) into master.
-2. Phase 8 — Flutter SOLID refactor & tests.
-3. Phase 9 (end): host the server (Render + Render Key Value), set `SERVER_URL` in Codemagic, deploy the web build to Vercel, add a "Play it live" link.
+1. Merge `phase-8-flutter` into master (app).
+2. Phase 9: server CI (GitHub Actions), host the server (Render + Render Key Value), set `SERVER_URL` in Codemagic, deploy the web build to Vercel, add a "Play it live" link.
 
 ## Known issues / TODO
 - ~~2026-10-26 Restarting the app mid-countdown or mid-race froze that room~~ — fixed in Phase 5.4 (race clock in Redis).
+- 2026-11-09 Widget tests press `CustomButton`s through `onTap` (a simulated tap on the Create/Join cards misses in the test window; works in the app). Cause not found yet.
+- 2026-11-09 `flutter test` prints a "Building Linux applications requires…" notice (snap Flutter, no desktop toolchain) — harmless; only needed for Linux desktop builds.
 - 2026-11-09 Dedup gap: if Redis dies after `claim` but before the writes, `release` fails too → the retried event is skipped for 24 h. Fix later with one Lua script (claim + writes).
 - 2026-11-09 While Kafka is down, librdkafka logs `Connection refused` on every reconnect (noisy, harmless).
 - 2026-11-09 Not yet shown: events produced *while* Kafka is down are kept (in exp. 4 the races started around the stop and finished after the restart). Stricter test: stop Kafka before the races start.
@@ -127,14 +137,13 @@
 - 11 npm audit warnings, mostly socket.io 2.x — fixed by the Phase 5 upgrade. Do NOT run `npm audit fix --force`.
 - Before `.gitattributes`, many files were committed with LF but edited as CRLF on Windows (e.g. `server/index.js` shows a whole-file diff that is only line endings). Run `git add --renormalize .` once in both repos.
 - v1 issue list: `PROJECT_OVERVIEW.md §10`.
-- `loader_overlay` package is now unused (cleanup in Phase 8).
 
 ## Useful commands
 - Server: `cd server && npm run dev` · `npm test` · `npm run test:coverage`
 - Docker: `cd server && docker compose up --build -d` (game on http://localhost:8080) · `docker compose ps` · `docker compose logs -f app1 app2 app3` · `docker compose stop app2` (kill test) · `docker compose down`
 - Load test: `ulimit -n 8192 && npm run load -- --rooms 125` (server folder, stack running)
 - Kafka: `docker compose logs stats-worker` · consumer lag: `docker compose exec kafka /opt/kafka/bin/kafka-consumer-groups.sh --bootstrap-server localhost:9092 --describe --group stats-worker` · watch events: `... kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic match.finished --from-beginning --property print.key=true` · two workers: `docker compose up -d --scale stats-worker=2`
-- Client: `flutter test` · `flutter run -d chrome --dart-define=SERVER_URL=http://localhost:3000`
+- Client: `flutter analyze && flutter test` · coverage: `flutter test --coverage` (lcov in `coverage/`) · `flutter run -d chrome --dart-define=SERVER_URL=http://localhost:8080`
 
 ## Measurements
 - 2026-11-09 **Kafka experiments** (`server/docs/kafka.md`), same laptop, bots at 60 WPM:

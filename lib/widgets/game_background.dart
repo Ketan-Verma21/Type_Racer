@@ -68,7 +68,7 @@ class _GameBackgroundState extends State<GameBackground>
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             gradient: RadialGradient(
-              colors: [color.withOpacity(0.22), color.withOpacity(0)],
+              colors: [color.withValues(alpha: 0.22), color.withValues(alpha: 0)],
             ),
           ),
         ),
@@ -84,7 +84,7 @@ class _GridPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = AppColors.cyan.withOpacity(0.06)
+      ..color = AppColors.cyan.withValues(alpha: 0.06)
       ..strokeWidth = 1;
     const gap = 48.0;
     final offset = t * gap;

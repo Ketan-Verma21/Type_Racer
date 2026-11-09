@@ -1,38 +1,40 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import 'package:type_racer/providers/game_state_provider.dart';
 import 'package:type_racer/theme/app_colors.dart';
-import 'package:type_racer/utils/player_utils.dart';
+import 'package:type_racer/theme/app_theme.dart';
+import 'package:type_racer/state/game_controller.dart';
 
 /// The sentence card with live, per-letter feedback.
 /// `typed` is the text currently in the input box (shared with GameTextField).
 class SentenceGame extends StatelessWidget {
   final ValueNotifier<String> typed;
-  const SentenceGame({Key? key, required this.typed}) : super(key: key);
+  final double maxWidth;
+  final double fontSize;
+  const SentenceGame({Key? key, required this.typed, this.maxWidth = 600, this.fontSize = 24})
+      : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    final game = Provider.of<GameStateProvider>(context);
-    final List words = game.gameState['words'];
-    final me = findMe(game.gameState['players']);
+    final game = context.watch<GameController>();
+    final words = game.game.words;
+    final me = game.me;
     if (me == null) return const SizedBox.shrink();
-    final int i = me['currentWordIndex'];
+    final i = me.wordIndex;
     if (i >= words.length) return const SizedBox.shrink();
 
-    final current = words[i].toString();
+    final current = words[i];
     final done = words.sublist(0, i).join(' ');
     final remaining = words.sublist(i + 1).join(' ');
-    final base = GoogleFonts.jetBrainsMono(fontSize: 24, height: 1.6);
+    final base = AppTheme.mono(size: fontSize, height: 1.6);
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(18),
-      constraints: const BoxConstraints(maxWidth: 600),
+      constraints: BoxConstraints(maxWidth: maxWidth),
       decoration: BoxDecoration(
-        color: AppColors.surface.withOpacity(0.85),
+        color: AppColors.surface.withValues(alpha: 0.85),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: AppColors.cyan.withOpacity(0.3)),
+        border: Border.all(color: AppColors.cyan.withValues(alpha: 0.3)),
       ),
       child: ValueListenableBuilder<String>(
         valueListenable: typed,
@@ -54,7 +56,7 @@ class SentenceGame extends StatelessWidget {
                 style: base.copyWith(
                   color: ok ? AppColors.green : AppColors.red,
                   backgroundColor:
-                      ok ? null : AppColors.red.withOpacity(0.25),
+                      ok ? null : AppColors.red.withValues(alpha: 0.25),
                   fontWeight: FontWeight.w800,
                 ),
               ));
@@ -85,7 +87,7 @@ class SentenceGame extends StatelessWidget {
               text: t.substring(current.length),
               style: base.copyWith(
                 color: AppColors.red,
-                backgroundColor: AppColors.red.withOpacity(0.25),
+                backgroundColor: AppColors.red.withValues(alpha: 0.25),
                 decoration: TextDecoration.lineThrough,
               ),
             ));

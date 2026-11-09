@@ -2,14 +2,12 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import 'package:type_racer/providers/game_state_provider.dart';
 import 'package:type_racer/theme/app_colors.dart';
-import 'package:type_racer/utils/player_utils.dart';
-import 'package:type_racer/utils/socket_methods.dart';
+import 'package:type_racer/theme/app_theme.dart';
+import 'package:type_racer/state/game_controller.dart';
+import 'package:type_racer/state/typing_stats.dart';
 import 'package:type_racer/utils/sound_service.dart';
-import 'package:type_racer/utils/typing_stats.dart';
 
 /// Typing box (only shown while racing). Turns red + shakes when what you
 /// typed doesn't match the current word. `typed` is shared with SentenceGame
@@ -17,7 +15,8 @@ import 'package:type_racer/utils/typing_stats.dart';
 class GameTextField extends StatefulWidget {
   final ValueNotifier<String> typed;
   final TypingStats stats;
-  const GameTextField({Key? key, required this.typed, required this.stats})
+  final double maxWidth;
+  const GameTextField({Key? key, required this.typed, required this.stats, this.maxWidth = 600})
       : super(key: key);
 
   @override
@@ -26,7 +25,6 @@ class GameTextField extends StatefulWidget {
 
 class _GameTextFieldState extends State<GameTextField>
     with SingleTickerProviderStateMixin {
-  final SocketMethods _socketMethods = SocketMethods();
   final TextEditingController _wordsController = TextEditingController();
   late final AnimationController _shake = AnimationController(
     vsync: this,
@@ -42,12 +40,12 @@ class _GameTextFieldState extends State<GameTextField>
   }
 
   /// Does `typed` still match the start of the current word?
-  bool _isWrong(GameStateProvider game, String typed) {
+  bool _isWrong(GameController game, String typed) {
     if (typed.isEmpty) return false;
-    final me = findMe(game.gameState['players']);
-    final List words = game.gameState['words'];
-    if (me == null || me['currentWordIndex'] >= words.length) return false;
-    return !words[me['currentWordIndex']].toString().startsWith(typed);
+    final me = game.me;
+    final words = game.game.words;
+    if (me == null || me.wordIndex >= words.length) return false;
+    return !words[me.wordIndex].startsWith(typed);
   }
 
   void _clear() {
@@ -58,7 +56,7 @@ class _GameTextFieldState extends State<GameTextField>
     _lastLen = 0;
   }
 
-  handleTextChange(String value, GameStateProvider game) {
+  void handleTextChange(String value, GameController game) {
     if (value.isEmpty) {
       widget.typed.value = '';
       _lastLen = 0;
@@ -70,7 +68,7 @@ class _GameTextFieldState extends State<GameTextField>
         return;
       }
       widget.stats.record(wrong: false);
-      _socketMethods.sendUserInput(value, game.gameState['id']);
+      game.typeWord(value);
       _clear();
       return;
     }
@@ -89,15 +87,15 @@ class _GameTextFieldState extends State<GameTextField>
 
   @override
   Widget build(BuildContext context) {
-    final gameData = Provider.of<GameStateProvider>(context);
-    if (findMe(gameData.gameState['players']) == null) {
+    final gameData = context.watch<GameController>();
+    if (gameData.me == null) {
       return const SizedBox.shrink();
     }
 
     return Center(
       heightFactor: 1,
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 600),
+        constraints: BoxConstraints(maxWidth: widget.maxWidth),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: ValueListenableBuilder<String>(
@@ -122,7 +120,7 @@ class _GameTextFieldState extends State<GameTextField>
                     borderRadius: BorderRadius.circular(14),
                     boxShadow: [
                       BoxShadow(
-                        color: border.withOpacity(wrong ? 0.45 : 0.15),
+                        color: border.withValues(alpha: wrong ? 0.45 : 0.15),
                         blurRadius: wrong ? 18 : 10,
                       ),
                     ],
@@ -132,8 +130,8 @@ class _GameTextFieldState extends State<GameTextField>
                     controller: _wordsController,
                     onChanged: (val) => handleTextChange(val, gameData),
                     cursorColor: border,
-                    style: GoogleFonts.jetBrainsMono(
-                      fontSize: 20,
+                    style: AppTheme.mono(
+                      size: 20,
                       color: wrong ? AppColors.red : AppColors.textPrimary,
                     ),
                     decoration: InputDecoration(
@@ -149,7 +147,7 @@ class _GameTextFieldState extends State<GameTextField>
                         borderSide: BorderSide(
                           color: wrong
                               ? AppColors.red
-                              : AppColors.cyan.withOpacity(0.15),
+                              : AppColors.cyan.withValues(alpha: 0.15),
                           width: wrong ? 2 : 1,
                         ),
                       ),

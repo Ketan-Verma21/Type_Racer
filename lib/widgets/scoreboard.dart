@@ -1,42 +1,44 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
-import 'package:type_racer/providers/game_state_provider.dart';
 import 'package:type_racer/theme/app_colors.dart';
 import 'package:type_racer/theme/app_theme.dart';
-import 'package:type_racer/utils/player_utils.dart';
+import 'package:type_racer/data/models/player.dart';
+import 'package:type_racer/domain/ranking.dart';
+import 'package:type_racer/state/game_controller.dart';
 
 /// Ranked results. While the race is still running it shows live standings
 /// ("waiting for others"); once it is over it crowns the winner.
 class Scoreboard extends StatelessWidget {
   final String myId;
-  const Scoreboard({Key? key, required this.myId}) : super(key: key);
+  final double maxWidth;
+  const Scoreboard({Key? key, required this.myId, this.maxWidth = 600}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    final game = Provider.of<GameStateProvider>(context);
-    final words = game.gameState['words'] as List;
-    final isOver = game.gameState['isOver'] == true;
-    final ranked = rankPlayers(game.gameState['players'] as List, words.length);
+    final game = context.watch<GameController>().game;
+    final words = game.words;
+    final isOver = game.isOver;
+    final ranked = rankPlayers(game.players, words.length);
     const medals = ['🥇', '🥈', '🥉'];
 
     final winner = ranked.isNotEmpty ? ranked.first : null;
-    final iWon = isOver && winner != null && winner['_id'].toString() == myId;
+    final iWon = isOver && winner != null && winner.id == myId;
     final title = !isOver
         ? 'WAITING FOR OTHERS...'
-        : (iWon ? 'YOU WON! 🎉' : '${winner?['nickname']} WINS!');
+        : (iWon ? 'YOU WON! 🎉' : '${winner?.nickname} WINS!');
 
     return ConstrainedBox(
-      constraints: const BoxConstraints(maxWidth: 600),
+      constraints: BoxConstraints(maxWidth: maxWidth),
       child: Container(
         margin: const EdgeInsets.symmetric(horizontal: 16),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppColors.surface.withOpacity(0.85),
+          color: AppColors.surface.withValues(alpha: 0.85),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: AppColors.yellow.withOpacity(0.5)),
+          border: Border.all(color: AppColors.yellow.withValues(alpha: 0.5)),
           boxShadow: [
-            BoxShadow(color: AppColors.yellow.withOpacity(0.15), blurRadius: 24),
+            BoxShadow(color: AppColors.yellow.withValues(alpha: 0.15), blurRadius: 24),
           ],
         ),
         child: Column(
@@ -59,10 +61,10 @@ class Scoreboard extends StatelessWidget {
     );
   }
 
-  Widget _row(int i, dynamic p, List<String> medals, int wordCount, bool isOver) {
-    final eliminated = p['isEliminated'] == true;
-    final wpm = wpmOf(p);
-    final mine = p['_id'].toString() == myId;
+  Widget _row(int i, Player p, List<String> medals, int wordCount, bool isOver) {
+    final eliminated = p.isEliminated;
+    final wpm = p.wpm;
+    final mine = p.id == myId;
     final showMedal = i < 3 && !eliminated && wpm >= 0;
     final isWinner = i == 0 && isOver && !eliminated;
 
@@ -71,14 +73,14 @@ class Scoreboard extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
         color: isWinner
-            ? AppColors.yellow.withOpacity(0.12)
+            ? AppColors.yellow.withValues(alpha: 0.12)
             : AppColors.surfaceHigh,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: mine
               ? AppColors.cyan
               : (isWinner
-                  ? AppColors.yellow.withOpacity(0.6)
+                  ? AppColors.yellow.withValues(alpha: 0.6)
                   : Colors.transparent),
           width: mine ? 2 : 1,
         ),
@@ -96,7 +98,7 @@ class Scoreboard extends StatelessWidget {
           ),
           Expanded(
             child: Text(
-              p['nickname'].toString() + (mine ? ' (you)' : ''),
+              p.nickname + (mine ? ' (you)' : ''),
               overflow: TextOverflow.ellipsis,
               style: AppTheme.body(size: 20, weight: FontWeight.w700),
             ),
