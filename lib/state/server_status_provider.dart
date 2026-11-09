@@ -3,7 +3,8 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
-import 'package:type_racer/utils/socket_client.dart';
+import 'package:type_racer/config/env.dart';
+import 'package:type_racer/data/socket/socket_client.dart';
 
 enum ServerState { checking, waking, ready, failed }
 

@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
-import 'package:type_racer/providers/game_state_provider.dart';
 import 'package:type_racer/theme/app_colors.dart';
 import 'package:type_racer/theme/app_theme.dart';
-import 'package:type_racer/utils/player_utils.dart';
+import 'package:type_racer/data/models/player.dart';
+import 'package:type_racer/domain/ranking.dart';
+import 'package:type_racer/state/game_controller.dart';
 
 /// Ranked results. While the race is still running it shows live standings
 /// ("waiting for others"); once it is over it crowns the winner.
@@ -14,17 +15,17 @@ class Scoreboard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final game = Provider.of<GameStateProvider>(context);
-    final words = game.gameState['words'] as List;
-    final isOver = game.gameState['isOver'] == true;
-    final ranked = rankPlayers(game.gameState['players'] as List, words.length);
+    final game = context.watch<GameController>().game;
+    final words = game.words;
+    final isOver = game.isOver;
+    final ranked = rankPlayers(game.players, words.length);
     const medals = ['🥇', '🥈', '🥉'];
 
     final winner = ranked.isNotEmpty ? ranked.first : null;
-    final iWon = isOver && winner != null && winner['_id'].toString() == myId;
+    final iWon = isOver && winner != null && winner.id == myId;
     final title = !isOver
         ? 'WAITING FOR OTHERS...'
-        : (iWon ? 'YOU WON! 🎉' : '${winner?['nickname']} WINS!');
+        : (iWon ? 'YOU WON! 🎉' : '${winner?.nickname} WINS!');
 
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 600),
@@ -59,10 +60,10 @@ class Scoreboard extends StatelessWidget {
     );
   }
 
-  Widget _row(int i, dynamic p, List<String> medals, int wordCount, bool isOver) {
-    final eliminated = p['isEliminated'] == true;
-    final wpm = wpmOf(p);
-    final mine = p['_id'].toString() == myId;
+  Widget _row(int i, Player p, List<String> medals, int wordCount, bool isOver) {
+    final eliminated = p.isEliminated;
+    final wpm = p.wpm;
+    final mine = p.id == myId;
     final showMedal = i < 3 && !eliminated && wpm >= 0;
     final isWinner = i == 0 && isOver && !eliminated;
 
@@ -96,7 +97,7 @@ class Scoreboard extends StatelessWidget {
           ),
           Expanded(
             child: Text(
-              p['nickname'].toString() + (mine ? ' (you)' : ''),
+              p.nickname + (mine ? ' (you)' : ''),
               overflow: TextOverflow.ellipsis,
               style: AppTheme.body(size: 20, weight: FontWeight.w700),
             ),

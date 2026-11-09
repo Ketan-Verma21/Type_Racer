@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
-import 'package:type_racer/providers/server_status_provider.dart';
+import 'package:type_racer/state/server_status_provider.dart';
 import 'package:type_racer/theme/app_colors.dart';
 import 'package:type_racer/theme/app_theme.dart';
 import 'package:type_racer/widgets/custom_button.dart';

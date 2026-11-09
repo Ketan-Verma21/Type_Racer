@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:type_racer/utils/typing_stats.dart';
+import 'package:type_racer/state/typing_stats.dart';
 
 void main() {
   group('TypingStats', () {

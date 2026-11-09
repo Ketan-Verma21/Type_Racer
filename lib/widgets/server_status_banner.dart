@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:provider/provider.dart';
-import '../providers/server_status_provider.dart';
+import '../state/server_status_provider.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 

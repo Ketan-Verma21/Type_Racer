@@ -1,6 +1,3 @@
-import 'dart:async';
-
-import 'package:awesome_snackbar_content/awesome_snackbar_content.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
@@ -8,7 +5,8 @@ import 'package:type_racer/theme/app_colors.dart';
 import 'package:type_racer/theme/app_theme.dart';
 import 'package:type_racer/domain/room_code.dart';
 import 'package:type_racer/widgets/room_code_input_formatter.dart';
-import 'package:type_racer/utils/socket_methods.dart';
+import 'package:type_racer/screens/enter_game.dart';
+import 'package:type_racer/widgets/snack.dart';
 import 'package:type_racer/widgets/back_button.dart';
 import 'package:type_racer/widgets/game_background.dart';
 
@@ -22,27 +20,12 @@ class JoinRoomScreen extends StatefulWidget {
   State<JoinRoomScreen> createState() => _JoinRoomScreenState();
 }
 
-class _JoinRoomScreenState extends State<JoinRoomScreen> {
-  /// How long we wait for the server before giving up.
-  static const Duration _joinTimeout = Duration(seconds: 10);
-
+class _JoinRoomScreenState extends State<JoinRoomScreen> with EnterGame {
   final _nameController = TextEditingController();
   final _gameIdController = TextEditingController();
-  final SocketMethods _socketMethods = SocketMethods();
-  bool _joining = false;
-  Timer? _timeout;
-
-  @override
-  void initState() {
-    super.initState();
-    // stop the spinner when we get into the game or the server says no
-    _socketMethods.updateGameListener(context, onEnterGame: _stopSpinner);
-    _socketMethods.notCorrectGameListener(context, onError: _stopSpinner);
-  }
 
   @override
   void dispose() {
-    _timeout?.cancel();
     _nameController.dispose();
     _gameIdController.dispose();
     super.dispose();
@@ -52,42 +35,15 @@ class _JoinRoomScreenState extends State<JoinRoomScreen> {
     final name = _nameController.text.trim();
     final code = normalizeRoomCode(_gameIdController.text);
     if (name.isEmpty) {
-      _showError('Please enter your name.');
+      showSnack(context, 'Please enter your name.');
       return;
     }
     if (!isValidRoomCode(code)) {
-      _showError('Room codes are 6 letters or digits, like K7P2QX.');
+      showSnack(context, 'Room codes are 6 letters or digits, like K7P2QX.');
       return;
     }
-    setState(() => _joining = true);
-    _socketMethods.joinGame(code, name);
-
-    _timeout?.cancel();
-    _timeout = Timer(_joinTimeout, () {
-      if (!mounted || !_joining) return;
-      setState(() => _joining = false);
-      _showError("The server didn't respond. Please try again.");
-    });
-  }
-
-  void _stopSpinner() {
-    _timeout?.cancel();
-    if (mounted && _joining) setState(() => _joining = false);
-  }
-
-  void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        elevation: 0,
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: Colors.transparent,
-        content: AwesomeSnackbarContent(
-          title: 'Oh Snap',
-          message: message,
-          contentType: ContentType.warning,
-        ),
-      ),
-    );
+    game.joinGame(code, name);
+    startWaiting();
   }
 
   @override
@@ -136,7 +92,7 @@ class _JoinRoomScreenState extends State<JoinRoomScreen> {
                         inputFormatters: [RoomCodeInputFormatter()],
                       ),
                       const SizedBox(height: 30),
-                      _joining
+                      waiting
                           ? const SpinKitWave(color: AppColors.magenta, size: 36)
                           : CustomButton(
                               text: 'Join',

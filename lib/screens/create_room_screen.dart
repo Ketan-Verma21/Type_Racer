@@ -1,12 +1,10 @@
-import 'dart:async';
-
-import 'package:awesome_snackbar_content/awesome_snackbar_content.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:type_racer/theme/app_colors.dart';
 import 'package:type_racer/theme/app_theme.dart';
-import 'package:type_racer/utils/socket_methods.dart';
+import 'package:type_racer/screens/enter_game.dart';
+import 'package:type_racer/widgets/snack.dart';
 import 'package:type_racer/widgets/back_button.dart';
 import 'package:type_racer/widgets/custom_button.dart';
 import 'package:type_racer/widgets/custom_text_field.dart';
@@ -19,26 +17,11 @@ class CreateRoomScreen extends StatefulWidget {
   State<CreateRoomScreen> createState() => _CreateRoomScreenState();
 }
 
-class _CreateRoomScreenState extends State<CreateRoomScreen> {
-  /// How long we wait for the server before giving up.
-  static const Duration _createTimeout = Duration(seconds: 10);
-
+class _CreateRoomScreenState extends State<CreateRoomScreen> with EnterGame {
   final TextEditingController _nameController = TextEditingController();
-  final SocketMethods _socketMethods = SocketMethods();
-  bool showSpinner = false;
-  Timer? _timeout;
-
-  @override
-  void initState() {
-    super.initState();
-    // stop the spinner when we get into the game or the server says no
-    _socketMethods.updateGameListener(context, onEnterGame: _stopSpinner);
-    _socketMethods.notCorrectGameListener(context, onError: _stopSpinner);
-  }
 
   @override
   void dispose() {
-    _timeout?.cancel();
     _nameController.dispose();
     super.dispose();
   }
@@ -46,40 +29,11 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
   void _create() {
     final name = _nameController.text.trim();
     if (name.isEmpty) {
-      _showError('Please enter your name.');
+      showSnack(context, 'Please enter your name.');
       return;
     }
-    setState(() => showSpinner = true);
-    _socketMethods.createGame(name);
-
-    // the server answers with updateGame (-> game screen) or notCorrectGame;
-    // if neither arrives, don't spin forever
-    _timeout?.cancel();
-    _timeout = Timer(_createTimeout, () {
-      if (!mounted || !showSpinner) return;
-      setState(() => showSpinner = false);
-      _showError("The server didn't respond. Please try again.");
-    });
-  }
-
-  void _stopSpinner() {
-    _timeout?.cancel();
-    if (mounted && showSpinner) setState(() => showSpinner = false);
-  }
-
-  void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        elevation: 0,
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: Colors.transparent,
-        content: AwesomeSnackbarContent(
-          title: 'Oh Snap',
-          message: message,
-          contentType: ContentType.warning,
-        ),
-      ),
-    );
+    game.createGame(name);
+    startWaiting();
   }
 
   @override
@@ -120,7 +74,7 @@ class _CreateRoomScreenState extends State<CreateRoomScreen> {
                           controller: _nameController,
                           hintText: 'Enter your name here'),
                       const SizedBox(height: 30),
-                      showSpinner
+                      waiting
                           ? const SpinKitWave(color: AppColors.cyan, size: 36)
                           : CustomButton(text: 'Create', onTap: _create),
                     ],
